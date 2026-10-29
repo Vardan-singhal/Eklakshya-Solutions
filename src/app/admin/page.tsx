@@ -1,7 +1,5 @@
-import { asc, desc, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
-import { db } from "@/db";
-import { bookings, consultationSlots, inquiries } from "@/db/schema";
+import { getDb } from "@/db";
 import { adminEnabled, isAdmin } from "@/lib/adminAuth";
 import { Card } from "@/components/ui/layout";
 import { logoutAction, setInquiryStatus } from "./actions";
@@ -14,11 +12,12 @@ const STATUSES = ["new", "contacted", "won", "archived"] as const;
 export default async function AdminPage() {
   if (!adminEnabled() || !(await isAdmin())) redirect("/admin/login");
 
-  const [inq, books, slots, [paid]] = await Promise.all([
-    db.select().from(inquiries).orderBy(desc(inquiries.createdAt)).limit(100),
-    db.select().from(bookings).orderBy(desc(bookings.createdAt)).limit(100),
-    db.select().from(consultationSlots).orderBy(asc(consultationSlots.preferredDate), asc(consultationSlots.preferredTime)).limit(100),
-    db.select({ n: sql<number>`count(*)::int` }).from(bookings).where(sql`${bookings.status} = 'paid'`),
+  const db = await getDb();
+  const [inq, books, slots, paid] = await Promise.all([
+    db.inquiries.find().sort({ createdAt: -1 }).limit(100).toArray(),
+    db.bookings.find().sort({ createdAt: -1 }).limit(100).toArray(),
+    db.consultationSlots.find().sort({ preferredDate: 1, preferredTime: 1 }).limit(100).toArray(),
+    db.bookings.countDocuments({ status: "paid" }),
   ]);
 
   return (
@@ -41,7 +40,7 @@ export default async function AdminPage() {
             ["Enquiries", inq.length],
             ["New", inq.filter((i) => i.status === "new").length],
             ["Bookings", books.length],
-            ["Paid", paid.n],
+            ["Paid", paid],
           ].map(([k, v]) => (
             <Card key={String(k)}>
               <p className="t-label">{k}</p>

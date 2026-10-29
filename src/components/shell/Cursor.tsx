@@ -1,8 +1,17 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { gsap } from "@/lib/gsap";
 import { isFinePointer } from "@/lib/engine";
+
+const getOpenDialog = () => document.querySelector<HTMLDialogElement>("dialog[open]");
+const getServerDialog = () => null;
+function subscribeToDialogs(onChange: () => void) {
+  const observer = new MutationObserver(onChange);
+  observer.observe(document.body, { attributes: true, attributeFilter: ["open"], subtree: true });
+  return () => observer.disconnect();
+}
 
 /**
  * Custom crosshair cursor (fine pointers only). The ring lags behind the dot,
@@ -13,6 +22,8 @@ export function Cursor() {
   const ring = useRef<HTMLDivElement>(null);
   const dot = useRef<HTMLDivElement>(null);
   const labelText = useRef<HTMLSpanElement>(null);
+  const lastPosition = useRef<{ x: number; y: number } | null>(null);
+  const activeDialog = useSyncExternalStore(subscribeToDialogs, getOpenDialog, getServerDialog);
 
   useEffect(() => {
     if (!isFinePointer()) return;
@@ -24,11 +35,17 @@ export function Cursor() {
     const html = document.documentElement;
     html.classList.add("has-cursor");
 
-    const pos = { x: -100, y: -100 };
-    const rpos = { x: -100, y: -100 };
+    const pos = { ...(lastPosition.current ?? { x: -100, y: -100 }) };
+    const rpos = { ...pos };
     let state = "idle";
     let pressed = false;
-    let shown = false;
+    let shown = lastPosition.current !== null;
+    if (shown) {
+      r.style.opacity = "1";
+      d.style.opacity = "1";
+      r.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`;
+      d.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`;
+    }
 
     const setState = (next: string) => {
       const value = pressed && next !== "label" ? "down" : next;
@@ -41,6 +58,7 @@ export function Cursor() {
     const onMove = (e: PointerEvent) => {
       pos.x = e.clientX;
       pos.y = e.clientY;
+      lastPosition.current = { ...pos };
       if (!shown) {
         shown = true;
         r.style.opacity = "1";
@@ -96,9 +114,9 @@ export function Cursor() {
       document.documentElement.removeEventListener("mouseleave", onLeave);
       html.classList.remove("has-cursor");
     };
-  }, []);
+  }, [activeDialog]);
 
-  return (
+  const cursor = (
     <>
       <div
         ref={ring}
@@ -120,4 +138,8 @@ export function Cursor() {
       />
     </>
   );
+
+  // Native dialogs sit above every ordinary z-index. Keep the cursor in that same
+  // top layer while a dialog is open, then restore its normal position on close.
+  return activeDialog ? createPortal(cursor, activeDialog) : cursor;
 }

@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
-import { db } from "@/db";
-import { consultationSlots } from "@/db/schema";
+import { getDb } from "@/db";
+import { apiErrorResponse } from "@/lib/apiErrors";
+import { nextId } from "@/db/schema";
 import { clean, clientIp, isEmail, rateLimit } from "@/lib/rateLimit";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-/** Postgres unique_violation (23505), whether raw or wrapped by drizzle's DrizzleQueryError. */
+/** MongoDB duplicate-key errors preserve the existing duplicate-slot response. */
 function isUniqueViolation(err: unknown) {
   const e = err as { code?: string; cause?: { code?: string } };
-  return e?.code === "23505" || e?.cause?.code === "23505";
+  return Number(e?.code) === 11000 || Number(e?.cause?.code) === 11000;
 }
 
 export async function POST(req: Request) {
@@ -38,21 +39,23 @@ export async function POST(req: Request) {
   }
 
   try {
-    // The unique index (preferred_date, preferred_time) is the single source of truth — no check-then-insert race.
-    await db.insert(consultationSlots).values({
+    const db = await getDb();
+    // A compound unique index prevents concurrent double bookings.
+    await db.consultationSlots.insertOne({
+      id: await nextId(db, "consultation_slots"),
       name,
       email,
       preferredDate: date,
       preferredTime: time,
       topic: clean(body.topic, 200) || "Project discovery call",
       notes: clean(body.notes, 1000) || null,
+      createdAt: new Date(),
     });
     return NextResponse.json({ success: true });
   } catch (error) {
     if (isUniqueViolation(error)) {
       return NextResponse.json({ error: "That slot was just booked — please pick another time." }, { status: 409 });
     }
-    console.error("consultation insert failed", error);
-    return NextResponse.json({ error: "Could not reserve that slot. Please try again." }, { status: 500 });
+    return apiErrorResponse("consultation insert failed", error, "Could not reserve that slot. Please try again.");
   }
 }

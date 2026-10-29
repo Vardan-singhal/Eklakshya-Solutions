@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "crypto";
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
-import { bookings } from "@/db/schema";
+import { getDb } from "@/db";
+import { getRazorpayWebhookSecret } from "@/lib/env.server";
+import { apiErrorResponse } from "@/lib/apiErrors";
 
 /**
  * Razorpay webhook — the source of truth for payment state (handles closed tabs / network drops).
  * Configure the URL in the Razorpay dashboard and set RAZORPAY_WEBHOOK_SECRET.
  */
 export async function POST(req: Request) {
-  const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+  const secret = getRazorpayWebhookSecret();
   if (!secret) return NextResponse.json({ error: "Webhook not configured." }, { status: 503 });
 
   const raw = await req.text();
@@ -32,12 +32,19 @@ export async function POST(req: Request) {
   const payment = event.payload?.payment?.entity;
   const orderId = payment?.order_id ?? event.payload?.order?.entity?.id;
 
-  if (orderId) {
-    if (event.event === "payment.captured" || event.event === "order.paid") {
-      await db.update(bookings).set({ status: "paid", paymentId: payment?.id, updatedAt: new Date() }).where(eq(bookings.orderId, orderId));
-    } else if (event.event === "payment.failed") {
-      await db.update(bookings).set({ status: "failed", updatedAt: new Date() }).where(eq(bookings.orderId, orderId));
+  try {
+    if (orderId && ["payment.captured", "order.paid", "payment.failed"].includes(event.event ?? "")) {
+      const db = await getDb();
+      if (event.event === "payment.captured" || event.event === "order.paid") {
+        await db.bookings.updateOne({ orderId }, { $set: {
+          status: "paid", ...(payment?.id ? { paymentId: payment.id } : {}), updatedAt: new Date(),
+        } });
+      } else if (event.event === "payment.failed") {
+        await db.bookings.updateOne({ orderId }, { $set: { status: "failed", updatedAt: new Date() } });
+      }
     }
+    return NextResponse.json({ received: true });
+  } catch (error) {
+    return apiErrorResponse("payment webhook failed", error, "Could not process the webhook. Please retry.");
   }
-  return NextResponse.json({ received: true });
 }

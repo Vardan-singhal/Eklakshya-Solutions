@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { createHmac, timingSafeEqual } from "crypto";
+import { getAdminPassword } from "./env.server";
 
 /**
  * Minimal single-owner auth for /admin. Enabled only when ADMIN_PASSWORD (8+ chars) is set.
@@ -8,7 +9,7 @@ import { createHmac, timingSafeEqual } from "crypto";
 const COOKIE = "ek_admin";
 const MAX_AGE = 60 * 60 * 24 * 7;
 
-const secret = () => process.env.ADMIN_PASSWORD ?? "";
+const secret = () => getAdminPassword() ?? "";
 export const adminEnabled = () => secret().length >= 8;
 
 const sign = (value: string) => createHmac("sha256", secret()).update(value).digest("hex");

@@ -1,11 +1,9 @@
 "use server";
 
-import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { db } from "@/db";
-import { inquiries } from "@/db/schema";
+import { getDb } from "@/db";
 import { checkPassword, endSession, isAdmin, startSession } from "@/lib/adminAuth";
 import { rateLimit } from "@/lib/rateLimit";
 
@@ -29,6 +27,7 @@ export async function setInquiryStatus(formData: FormData) {
   const id = Number(formData.get("id"));
   const status = String(formData.get("status"));
   if (!Number.isInteger(id) || !(STATUSES as readonly string[]).includes(status)) return;
-  await db.update(inquiries).set({ status: status as (typeof STATUSES)[number] }).where(eq(inquiries.id, id));
+  const db = await getDb();
+  await db.inquiries.updateOne({ id }, { $set: { status: status as (typeof STATUSES)[number] } });
   revalidatePath("/admin");
 }

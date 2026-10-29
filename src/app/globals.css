@@ -391,6 +391,15 @@
   }
 }
 
+/* The animated cursor is portalled into the open dialog's top layer. */
+.social-drawer[open] .social-drawer-panel {
+  animation: social-drawer-enter 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes social-drawer-enter {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
 /* Custom cursor */
 html.has-cursor,
 html.has-cursor * {

@@ -12,6 +12,7 @@ import { ScrollProgress, SectionDots } from "@/components/shell/ScrollUI";
 import { BackgroundField } from "@/components/shell/BackgroundField";
 import { Navbar } from "@/components/shell/Navbar";
 import { Footer } from "@/components/shell/Footer";
+import { SocialDrawer } from "@/components/shell/SocialDrawer";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
@@ -99,6 +100,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
             <div className="relative z-10">{children}</div>
           </main>
           <Footer services={services} />
+          <SocialDrawer />
         </PageTransition>
         <div className="grain" aria-hidden="true" />
       </body>

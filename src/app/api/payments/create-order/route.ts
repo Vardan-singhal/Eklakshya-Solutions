@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
-import { bookings } from "@/db/schema";
+import { getDb } from "@/db";
+import { getRazorpayCredentials } from "@/lib/env.server";
+import { apiErrorResponse } from "@/lib/apiErrors";
+import { nextId } from "@/db/schema";
 import { getPricingTiers } from "@/lib/content";
 import { clean, clientIp, isEmail, rateLimit } from "@/lib/rateLimit";
 
 /**
  * Creates a booking and (when Razorpay keys are configured) a Razorpay order.
- * The amount is ALWAYS computed here from the pricing_tiers row — never trusted from the client.
+ * The amount is ALWAYS computed here from pricing_tiers — never trusted from the client.
  * Without keys the booking is stored as `awaiting_payment` and the visitor is told plainly that
  * no money has been taken. It is never marked paid here; only /verify or /webhook can do that.
  */
@@ -37,9 +38,12 @@ export async function POST(req: Request) {
     currency === "INR" ? (mode === "full" ? tier.priceINR : tier.advanceINR) : mode === "full" ? tier.priceUSD : tier.advanceUSD;
 
   try {
-    const [row] = await db
-      .insert(bookings)
-      .values({
+    const credentials = getRazorpayCredentials();
+    const db = await getDb();
+    const row = { id: await nextId(db, "bookings") };
+    const now = new Date();
+    await db.bookings.insertOne({
+        id: row.id,
         tierId: tier.dbId ?? null,
         tierName: tier.name,
         mode,
@@ -49,16 +53,16 @@ export async function POST(req: Request) {
         clientEmail: email,
         clientPhone: clean(body.phone, 40) || null,
         status: "created",
-      })
-      .returning({ id: bookings.id });
+        createdAt: now,
+        updatedAt: now,
+      });
 
-    const keyId = process.env.RAZORPAY_KEY_ID;
-    const keySecret = process.env.RAZORPAY_KEY_SECRET;
-
-    if (!keyId || !keySecret) {
-      await db.update(bookings).set({ status: "awaiting_payment" }).where(eq(bookings.id, row.id));
+    if (!credentials) {
+      await db.bookings.updateOne({ id: row.id }, { $set: { status: "awaiting_payment", updatedAt: new Date() } });
       return NextResponse.json({ mode: "manual", bookingId: row.id, reference: `EK-${String(row.id).padStart(5, "0")}`, amount, currency });
     }
+
+    const { keyId, keySecret } = credentials;
 
     const res = await fetch("https://api.razorpay.com/v1/orders", {
       method: "POST",
@@ -75,13 +79,13 @@ export async function POST(req: Request) {
     });
 
     if (!res.ok) {
-      console.error("razorpay order failed", res.status, await res.text());
-      await db.update(bookings).set({ status: "failed" }).where(eq(bookings.id, row.id));
+      console.error("razorpay order failed", res.status);
+      await db.bookings.updateOne({ id: row.id }, { $set: { status: "failed", updatedAt: new Date() } });
       return NextResponse.json({ error: "The payment gateway could not start the order. Please try again." }, { status: 502 });
     }
 
     const order = (await res.json()) as { id: string };
-    await db.update(bookings).set({ orderId: order.id }).where(eq(bookings.id, row.id));
+    await db.bookings.updateOne({ id: row.id }, { $set: { orderId: order.id, updatedAt: new Date() } });
 
     return NextResponse.json({
       mode: "razorpay",
@@ -93,7 +97,6 @@ export async function POST(req: Request) {
       description: `${tier.name} — ${mode === "full" ? "full payment" : "advance"}`,
     });
   } catch (error) {
-    console.error("create-order failed", error);
-    return NextResponse.json({ error: "Something went wrong creating your booking." }, { status: 500 });
+    return apiErrorResponse("create-order failed", error, "Something went wrong creating your booking.");
   }
 }

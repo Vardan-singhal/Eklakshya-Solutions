@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { db } from "@/db";
-import { inquiries } from "@/db/schema";
+import { getDb } from "@/db";
+import { apiErrorResponse } from "@/lib/apiErrors";
+import { nextId } from "@/db/schema";
 import { clean, clientIp, isEmail, rateLimit } from "@/lib/rateLimit";
 
 export async function POST(req: Request) {
@@ -26,17 +27,20 @@ export async function POST(req: Request) {
   }
 
   try {
-    await db.insert(inquiries).values({
+    const db = await getDb();
+    await db.inquiries.insertOne({
+      id: await nextId(db, "inquiries"),
       name,
       email,
       phone: clean(body.phone, 40),
       service: clean(body.service, 200) || "General enquiry",
       budget: clean(body.budget, 80) || "Not specified",
       message,
+      status: "new",
+      createdAt: new Date(),
     });
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("inquiry insert failed", error);
-    return NextResponse.json({ error: "Could not save your message. Please WhatsApp or email us directly." }, { status: 500 });
+    return apiErrorResponse("inquiry insert failed", error, "Could not save your message. Please WhatsApp or email us directly.");
   }
 }

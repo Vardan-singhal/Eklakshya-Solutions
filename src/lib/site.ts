@@ -1,6 +1,8 @@
+import { publicEnv } from "./env.public";
+
 export const SITE = {
   name: "Eklakshya Solutions",
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://eklakshya.com",
+  url: publicEnv.siteUrl,
   email: "eklaskhyasolutions1906@gmail.com",
   phone: "+919205617576",
   whatsapp: "919205617576",

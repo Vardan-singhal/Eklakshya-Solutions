@@ -1,72 +1,79 @@
-# Database
+# Database: MongoDB
 
-PostgreSQL via **Drizzle ORM**. Source of truth: [`src/db/schema.ts`](../src/db/schema.ts).
+The application uses the official MongoDB Node.js driver. PostgreSQL and Drizzle are no
+longer runtime dependencies. All website components, content APIs and animations are preserved.
 
-```
-src/db/
-  schema.ts   tables · enums · indexes · relations      ← edit this
-  index.ts    pg Pool + drizzle client (schema attached → db.query.* works)
-  seed.ts     fills CONTENT tables from src/data/siteData.ts
-drizzle/      generated SQL migrations (commit these)
-drizzle.config.json
-src/lib/content.ts   the only place pages read content from (DB first, bundled fallback)
-```
+## Configure
 
-## Entity relationship
+Set your own connection string in the ignored root `.env`:
 
-```mermaid
-erDiagram
-  projects ||--o{ project_results : "has metrics"
-  catalogues ||--o{ catalogue_plates : "has plates"
-  pricing_tiers ||--o{ bookings : "booked as"
-
-  services { serial id PK  text slug UK  service_kind kind  text title  text_array deliverables  int sort_order }
-  projects { serial id PK  text slug UK  project_category category  text problem  text solution  text_array stack  int sort_order }
-  project_results { serial id PK  int project_id FK  float value  text label  int sort_order }
-  catalogues { serial id PK  text slug UK  text title  text client  int sort_order }
-  catalogue_plates { serial id PK  int catalogue_id FK  text title  int sku  text_array specs }
-  posts { serial id PK  text slug UK  jsonb body  timestamptz published_at }
-  testimonials { serial id PK  text quote  text author  text company }
-  pricing_tiers { serial id PK  text slug UK  int price_inr  int price_usd  int advance_inr  int advance_usd }
-  faqs { serial id PK  text question  text answer }
-  inquiries { serial id PK  text email  inquiry_status status  timestamptz created_at }
-  bookings { serial id PK  int tier_id FK  booking_status status  text order_id UK  int amount  currency_code currency }
-  consultation_slots { serial id PK  date preferred_date  text preferred_time }
+```dotenv
+MONGODB_URI=
+MONGODB_DB=
 ```
 
-## Two groups of tables
+`MONGODB_URI` accepts Atlas (`mongodb+srv://`) and self-hosted (`mongodb://`) connection
+strings. Leave `MONGODB_DB` empty to use the database named in the URI; if neither specifies
+a name, the application uses `eklakshya_solutions`. An explicit `MONGODB_DB` takes precedence.
+Use a plain database name such as `eklakshya_solutions`, without spaces; do not put a
+connection string in `MONGODB_DB`. You may leave that optional setting empty.
+All admin, payment and public site settings remain unchanged.
 
-| Group | Tables | Notes |
-| --- | --- | --- |
-| **Content** | `services`, `projects`, `project_results`, `catalogues`, `catalogue_plates`, `posts`, `testimonials`, `pricing_tiers`, `faqs` | Ordered by explicit `sort_order` (not `created_at`). Hidden with `published = false`. |
-| **Operations** | `inquiries`, `bookings`, `consultation_slots` | Written by visitors, read only in `/admin`. No public GET endpoints. |
+If Atlas SRV lookups fail with `querySrv ECONNREFUSED`, optionally set
+`MONGODB_DNS_SERVERS=1.1.1.1,8.8.8.8` in local `.env`. This changes Node's process-wide
+DNS resolver for SRV/TXT queries, never OS DNS settings. Leave it unset when system DNS works.
+Run `npm run db:check` for a read-only connection/ping check before seeding. Known DNS,
+authentication, permission and index failures have safe diagnostic messages without credentials.
 
-## Rules enforced by the database
+Importing the database module never connects. The first database operation connects,
+initializes indexes and caches the connection for reuse. Missing configuration produces a
+safe 503 response from database-backed APIs. The website retains its bundled-content fallback.
 
-- `consultation_slots (preferred_date, preferred_time)` is **unique** → a call slot can't be double-booked, even under concurrent requests.
-- `bookings.order_id` is **unique** → one Razorpay order maps to one booking.
-- `bookings.tier_id → pricing_tiers.id` is `ON DELETE SET NULL`; `tier_name` is a snapshot so billing history survives edits.
-- `project_results` and `catalogue_plates` are `ON DELETE CASCADE` from their parent.
-- Closed sets are enums: `inquiry_status`, `booking_status`, `booking_mode`, `currency_code`, `project_category`, `service_kind`.
-- A booking is **never** marked `paid` by the client. Only `/api/payments/verify` (HMAC signature) or `/api/payments/webhook` can do that.
+## Source files
 
-## Commands
+- `src/db/index.ts`: lazy, reusable MongoClient, retry after connection failure and CLI cleanup.
+- `src/db/schema.ts`: typed collections, indexes and atomic numeric-ID allocation.
+- `src/db/seed.ts`: bundled editorial content seeding.
+- `src/lib/content.ts`: identical public content API, backed by MongoDB.
+- `src/lib/env.server.ts`: private configuration validation.
 
-```bash
-npx drizzle-kit push                 # apply schema to the dev database
-npx drizzle-kit generate             # write a SQL migration into ./drizzle
-npx tsx src/db/seed.ts               # seed empty content tables
-npx tsx src/db/seed.ts --reset       # wipe + re-seed content (never touches operations tables)
+## Collections
+
+| Collection | Purpose |
+| --- | --- |
+| `services` | Service descriptions and deliverables |
+| `projects` | Case studies with embedded, ordered results |
+| `catalogues` | Catalogues with embedded, ordered plates |
+| `posts` | Articles with embedded sections |
+| `testimonials` | Client quotes |
+| `pricing_tiers` | Server-side prices and payment amounts |
+| `faqs` | Questions and answers |
+| `inquiries` | Private contact submissions |
+| `bookings` | Private booking/payment state and snapshots |
+| `consultation_slots` | Private date/time reservations |
+| `counters` | Atomic numeric IDs, preserving references such as EK-00001 |
+
+Unique indexes protect IDs, editorial slugs, consultation date/time pairs and actual payment
+order IDs. The order-ID index excludes missing values so multiple manual bookings are allowed.
+MongoDB BSON IDs are not sent to client components. Project results and catalogue plates stay
+in their existing array order.
+
+## Seed content
+
+After configuring a development database with a user allowed to create indexes and read/write:
+
+```powershell
+npm run db:seed
 ```
 
-## Content flow
+The script only fills empty content collections by default. Visitor records are retained.
+`npm run db:seed -- --reset` explicitly clears and reseeds editorial content, retaining
+bookings/inquiries/call requests and ID counters. On reset, booking tier references are
+detached before pricing tiers are replaced; booking names and payment history remain intact.
 
-`page.tsx` → `getProjects()` etc. in `src/lib/content.ts` → Postgres.
-If the DB is down or a table is empty, the same function returns the bundled copy in
-`src/data/siteData.ts`, so the site always renders. To change copy, edit the rows
-(or `siteData.ts` + `--reset`).
+No SQL migration or Drizzle command is needed. The existing `drizzle/` SQL files are retained
+only as historical reference and are not executed by the MongoDB application. This change does
+not transfer records from an existing PostgreSQL database; any such data import is a separate
+operation.
 
-## Admin
-
-`/admin` is an inbox for the operations tables (enquiries, bookings, call requests). It is disabled
-until `ADMIN_PASSWORD` (8+ characters) is set in the environment.
+See [deployment instructions](DEPLOYMENT.md).
