@@ -2,22 +2,56 @@
 
 import { useCallback, useSyncExternalStore, type MouseEvent } from "react";
 import { isReducedMotion } from "@/lib/engine";
+import { syncTheme, type Theme, type ThemePreference } from "@/lib/theme";
 
-export type Theme = "dark" | "light";
-const STORAGE_KEY = "ek-theme";
+export type { Theme, ThemePreference } from "@/lib/theme";
 
-/**
- * The single source of truth for the theme is the `data-theme` attribute on <html>.
- * An inline script in <head> sets it before first paint (no flash), CSS variables
- * re-skin the UI, and anything else (the 3D scenes) subscribes to the attribute here.
- */
+/** The root attributes drive CSS and the existing 3D theme subscribers. */
+const listeners = new Set<() => void>();
+let cleanup: (() => void) | undefined;
 function subscribe(cb: () => void) {
-  const observer = new MutationObserver(cb);
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-  return () => observer.disconnect();
+  listeners.add(cb);
+  if (listeners.size === 1) {
+    const notify = () => listeners.forEach((listener) => listener());
+    const observer = new MutationObserver(notify);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme", "data-theme-preference"],
+    });
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const sync = () => syncTheme();
+    const onStorage = (event: StorageEvent) => {
+      if (event.storageArea === window.localStorage &&
+          (event.key === null || event.key === "eklakshya-theme" || event.key === "ek-theme")) sync();
+    };
+    mediaQuery.addEventListener("change", sync);
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("focus", sync);
+    // Catch system/storage changes between the head script and hydration.
+    sync();
+    cleanup = () => {
+      observer.disconnect();
+      mediaQuery.removeEventListener("change", sync);
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("focus", sync);
+    };
+  }
+  return () => {
+    listeners.delete(cb);
+    if (listeners.size === 0) {
+      cleanup?.();
+      cleanup = undefined;
+    }
+  };
 }
-const getSnapshot = (): Theme => (document.documentElement.dataset.theme === "light" ? "light" : "dark");
+const getSnapshot = (): Theme => document.documentElement.dataset.theme === "light" ? "light" : "dark";
 const getServerSnapshot = (): Theme => "dark";
+const getPreference = (): ThemePreference => {
+  const preference = document.documentElement.dataset.themePreference;
+  return preference === "light" || preference === "dark" ? preference : "system";
+};
+const getServerPreference = (): ThemePreference => "system";
+const setPreference = (preference: ThemePreference) => syncTheme(preference);
 
 type ViewTransitionDoc = Document & {
   startViewTransition?: (cb: () => void) => { ready: Promise<void> };
@@ -25,16 +59,8 @@ type ViewTransitionDoc = Document & {
 
 export function useTheme() {
   const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-
-  const apply = useCallback((next: Theme) => {
-    document.documentElement.dataset.theme = next;
-    document.documentElement.style.colorScheme = next;
-    try {
-      localStorage.setItem(STORAGE_KEY, next);
-    } catch {
-      /* storage may be unavailable (private mode) */
-    }
-  }, []);
+  const preference = useSyncExternalStore(subscribe, getPreference, getServerPreference);
+  const apply = useCallback((next: Theme) => setPreference(next), []);
 
   const toggle = useCallback(
     async (e?: MouseEvent) => {
@@ -64,5 +90,5 @@ export function useTheme() {
     [apply]
   );
 
-  return { theme, toggle };
+  return { theme, preference, setPreference, toggle };
 }

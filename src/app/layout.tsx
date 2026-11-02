@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { themeScript } from "@/lib/theme";
 import { SITE } from "@/lib/site";
 import { getServices } from "@/lib/content";
 import { organizationLd, websiteLd } from "@/lib/seo";
@@ -55,13 +56,11 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-// Runs before first paint → no flash of the wrong theme.
-const themeScript = `(function(){try{var t=localStorage.getItem('ek-theme');if(t!=='light'&&t!=='dark'){t='dark'}document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t}catch(e){document.documentElement.dataset.theme='dark'}})();`;
-
+// The blocking head script applies the resolved theme before first paint.
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const services = (await getServices()).slice(0, 5).map((s) => ({ label: s.title, href: `/services#${s.id}` }));
   return (
-    <html lang="en" data-theme="dark" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <link rel="dns-prefetch" href="https://api.fontshare.com" />

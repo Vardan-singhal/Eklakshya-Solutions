@@ -14,7 +14,46 @@
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 @custom-variant light (&:where([data-theme="light"], [data-theme="light"] *));
 
-:root,
+:root {
+  --c-bg: #0d0c0a;
+  --c-surface: #141210;
+  --c-surface-2: #1d1a17;
+  --c-fg: #f5efe3;
+  --c-muted: #a39e92;
+  --c-line: rgba(245, 239, 227, 0.1);
+  --c-line-strong: rgba(245, 239, 227, 0.22);
+  --c-ember: #e9b949; /* logo gold */
+  --c-tint: #39bfff; /* logo electric blue */
+  --c-accent: #f3cc70; /* readable gold on ink */
+  --c-on-accent: #0d0c0a;
+  --grad-a: #e9b949;
+  --grad-b: #ffe5a0;
+  --tint-max: 0.5;
+  --grain-opacity: 0.07;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --c-bg: #f5efe3;
+    --c-surface: #fffaf0;
+    --c-surface-2: #ebe2d0;
+    --c-fg: #15110c;
+    --c-muted: #5b5446;
+    --c-line: rgba(21, 17, 12, 0.12);
+    --c-line-strong: rgba(21, 17, 12, 0.28);
+    --c-ember: #b87d14;
+    --c-tint: #0077b6;
+    --c-accent: #85590b; /* readable gold on cream */
+    --c-on-accent: #120f0b;
+    --grad-a: #99670f;
+    --grad-b: #d6a434;
+    --tint-max: 0.2;
+    --grain-opacity: 0.1;
+    color-scheme: light;
+  }
+}
+
 [data-theme="dark"] {
   --c-bg: #0d0c0a;
   --c-surface: #141210;
@@ -439,9 +478,37 @@ html.lenis body {
   transform: rotate(-90deg) scale(0);
   opacity: 0;
 }
+[data-theme="dark"] .theme-moon {
+  transform: none;
+  opacity: 1;
+}
 [data-theme="light"] .theme-moon {
   transform: rotate(90deg) scale(0);
   opacity: 0;
+}
+[data-theme="light"] .theme-sun {
+  transform: none;
+  opacity: 1;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .theme-moon {
+    transform: rotate(90deg) scale(0);
+    opacity: 0;
+  }
+  :root:not([data-theme="dark"]) .theme-sun {
+    transform: none;
+    opacity: 1;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-sun {
+    transform: rotate(-90deg) scale(0);
+    opacity: 0;
+  }
+  :root:not([data-theme="light"]) .theme-moon {
+    transform: none;
+    opacity: 1;
+  }
 }
 
 /* View-transition circular reveal for theme switching */
