@@ -37,6 +37,13 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "website three.js",
+    "app three.js",
+    "software three.js",
+    "saas three.js",
+    "catalogue three.js",
+    "image three.js",
+    "seo three.js"
   ]
 }

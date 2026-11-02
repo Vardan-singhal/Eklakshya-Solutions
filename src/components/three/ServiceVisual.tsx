@@ -8,6 +8,13 @@ import { Boundary } from "./Boundary";
 import { useCanRender3D, useInView } from "./useGraphics";
 
 const ServiceObject = dynamic(() => import("./ServiceObject"), { ssr: false });
+const WebStackScene = dynamic(() => import("./WebStackScene"), { ssr: false });
+const AppDevScene = dynamic(() => import("./AppDevScene"), { ssr: false });
+const SoftwareDevScene = dynamic(() => import("./SoftwareDevScene"), { ssr: false });
+const SaasProductScene = dynamic(() => import("./SaasProductScene"), { ssr: false });
+const CatalogueScene = dynamic(() => import("./CatalogueScene"), { ssr: false });
+const ImageGenScene = dynamic(() => import("./ImageGenScene"), { ssr: false });
+const SeoScene = dynamic(() => import("./SeoScene"), { ssr: false });
 
 /**
  * A floating 3D object for a service. The WebGL canvas is mounted only while the
@@ -38,7 +45,23 @@ export function ServiceVisual({ kind, className = "" }: { kind: ServiceKind; cla
       </svg>
       {can3D && near ? (
         <Boundary fallback={fallback}>
-          <ServiceObject kind={kind} light={theme === "light"} />
+          {kind === "web" ? (
+            <WebStackScene light={theme === "light"} />
+          ) : kind === "app" ? (
+            <AppDevScene light={theme === "light"} />
+          ) : kind === "software" ? (
+            <SoftwareDevScene light={theme === "light"} />
+          ) : kind === "saas" ? (
+            <SaasProductScene light={theme === "light"} />
+          ) : kind === "catalogue" ? (
+            <CatalogueScene light={theme === "light"} />
+          ) : kind === "image" ? (
+            <ImageGenScene light={theme === "light"} />
+          ) : kind === "seo" ? (
+            <SeoScene light={theme === "light"} />
+          ) : (
+            <ServiceObject kind={kind} light={theme === "light"} />
+          )}
         </Boundary>
       ) : (
         fallback
