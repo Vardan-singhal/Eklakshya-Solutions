@@ -17,7 +17,7 @@ const POINTS = [
 export function CatalogueTeaser({ catalogue }: { catalogue: CatalogueItem }) {
   return (
     <Section id="catalogues" label="Catalogues" alt labelledBy="catalogues-title" className="overflow-hidden">
-      <div className="grid items-center gap-14 lg:grid-cols-12 lg:gap-16">
+      <div className="grid grid-cols-1 items-center gap-14 lg:grid-cols-12 lg:gap-16">
         <div className="lg:col-span-5">
           <Reveal>
             <SectionLabel>Flagship specialty</SectionLabel>
@@ -49,7 +49,7 @@ export function CatalogueTeaser({ catalogue }: { catalogue: CatalogueItem }) {
           </Reveal>
         </div>
 
-        <div className="lg:col-span-7">
+        <div className="lg:col-span-7 [&_[data-cursor=Drag]]:px-[calc((100%_-_min(75vw,290px))_/_2_+_var(--gutter))]">
           <FlipBook catalogue={catalogue} variant="inline" controls={false} />
         </div>
       </div>

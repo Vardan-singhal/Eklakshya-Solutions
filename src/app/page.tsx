@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { SITE } from "@/lib/site";
 import { buildMetadata } from "@/lib/seo";
-import { getCatalogues, getProjects, getServices, getTestimonials } from "@/lib/content";
+import { getProjects, getServices, getTestimonials } from "@/lib/content";
 import { PROCESS, TECH } from "@/data/siteData";
+import { HOME_CATALOGUE } from "@/data/homeCatalogue";
 import { HomeHero } from "@/components/sections/HomeHero";
 import { Manifesto } from "@/components/sections/Manifesto";
 import { ServicesStack } from "@/components/sections/ServicesStack";
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  const [services, projects, catalogues, testimonials] = await Promise.all([getServices(), getProjects(), getCatalogues(), getTestimonials()]);
+  const [services, projects, testimonials] = await Promise.all([getServices(), getProjects(), getTestimonials()]);
 
   return (
     <>
@@ -35,7 +36,7 @@ export default async function HomePage() {
       <Manifesto />
       <ServicesStack services={services} />
       <ProjectsRail projects={projects} />
-      <CatalogueTeaser catalogue={catalogues[0]} />
+      <CatalogueTeaser catalogue={HOME_CATALOGUE} />
 
       <Section id="process" label="Process" labelledBy="process-title">
         <SectionHeader headingId="process-title" eyebrow="How we work" title={"Four steps to\n*the bullseye.*"} intro="Every project follows the same calibrated path, so you always know what happens next and what you will receive." />

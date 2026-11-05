@@ -1,6 +1,8 @@
 /* Content for the whole site. Case studies, metrics and testimonials are
    illustrative placeholders — replace them with real client work. */
 
+import cataloguePages from "./catalogue-pages.json";
+
 export type ServiceKind = "web" | "app" | "software" | "saas" | "catalogue" | "image" | "seo";
 
 export interface ServiceItem {
@@ -336,6 +338,13 @@ export interface CataloguePlate {
   specs: string[];
 }
 
+export interface CataloguePageAsset {
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+}
+
 export interface CatalogueItem {
   id: string;
   title: string;
@@ -344,50 +353,32 @@ export interface CatalogueItem {
   year: string;
   blurb: string;
   plates: CataloguePlate[];
+  pages?: CataloguePageAsset[];
+  pdf?: string;
 }
 
 export const CATALOGUES: CatalogueItem[] = [
   {
-    id: "apex-spares",
-    title: "Heavy Spares",
-    client: "Apex Engineering Works",
-    industry: "Industrial machinery",
-    year: "2025",
-    blurb: "Hydraulic seals, gears, couplings and valves — searchable by SKU, drawing number or machine model.",
-    plates: [
-      { title: "Precision Machined Components", sub: "ISO 9001 certified manufacturing", image: "/images/work-erp.jpg", imageAlt: "Machining centre cutting metal with sparks", sku: 128, specs: ["Tolerances to ±0.005 mm", "Grade 8.8 high-tensile steel", "Export-grade rust-proof packing"] },
-      { title: "Flanged Ball Valves", sub: "Class 150 – 2500 flow control", image: "/images/work-web.jpg", imageAlt: "Brass and steel valves", sku: 64, specs: ["1/2″ to 24″ NB", "WCB, CF8M and duplex bodies", "Fire-safe to API 607"] },
-      { title: "Turbine & Impeller Parts", sub: "Dynamic-balanced rotating parts", image: "/images/work-render.jpg", imageAlt: "Metal turbine blade", sku: 41, specs: ["Vibration tested to ISO 1940", "Nickel-alloy options", "Traceable heat numbers"] },
-      { title: "Field Service Kits", sub: "Ready-to-dispatch maintenance sets", image: "/images/work-app.jpg", imageAlt: "Phone next to machinery", sku: 36, specs: ["QR-linked service history", "Kitted per machine model", "48-hour dispatch"] },
-    ],
+    id: "sanway-2026",
+    title: "Product Catalogue 2026",
+    client: "Sanway",
+    industry: "Home & kitchen appliances",
+    year: "2026",
+    blurb: "Sanway's original product catalogue: kitchen appliances, fans, home and personal care, and heating solutions.",
+    plates: [],
+    pages: cataloguePages.sanway.pages,
+    pdf: cataloguePages.sanway.pdf,
   },
   {
-    id: "vedic-surfaces",
-    title: "Stone & Tile",
-    client: "Vedic Surfaces",
-    industry: "Architecture & interiors",
-    year: "2025",
-    blurb: "Large-format sintered stone, terrazzo and fluted wall tiles, with finish and size filters per page.",
-    plates: [
-      { title: "Calacatta Sintered Slabs", sub: "3200 × 1600 mm bookmatched", image: "/images/work-catalogue.jpg", imageAlt: "Ceramic tile samples", sku: 16, specs: ["12 mm slim profile", "Scratch and heat proof", "Polished and satin finishes"] },
-      { title: "Brutalist Terrazzo", sub: "Recycled marble in dense resin", image: "/images/work-web.jpg", imageAlt: "Dark industrial texture", sku: 20, specs: ["R10 anti-slip rating", "Airport-grade durability", "Custom aggregate colours"] },
-      { title: "Fluted Acoustic Panels", sub: "Wall tiles that absorb sound", image: "/images/work-saas.jpg", imageAlt: "Abstract flowing lines", sku: 24, specs: ["NRC 0.55 rating", "Class A fire rating", "Easy dry-fit install"] },
-      { title: "Outdoor Porcelain", sub: "20 mm pavers for terraces", image: "/images/work-erp.jpg", imageAlt: "Industrial surfaces", sku: 18, specs: ["Frost resistant", "Slip-tested R11", "Lifetime colour fastness"] },
-    ],
-  },
-  {
-    id: "kalyan-textiles",
-    title: "Fabric Suite",
-    client: "Kalyan Exporters",
-    industry: "Apparel & textiles",
-    year: "2025",
-    blurb: "Organic cotton, linen blends and sustainable twills with swatch-accurate colour and GSM data.",
-    plates: [
-      { title: "Organic Twill & Poplin", sub: "GOTS certified, fully traceable", image: "/images/work-saas.jpg", imageAlt: "Woven flowing pattern", sku: 32, specs: ["120 – 240 GSM", "Colourfastness grade 4–5", "OEKO-TEX Standard 100"] },
-      { title: "Mercerised Linen Weaves", sub: "Breathable European flax blends", image: "/images/work-catalogue.jpg", imageAlt: "Textured material samples", sku: 24, specs: ["Natural slub texture", "Pre-washed, no shrinkage", "Low-impact reactive dyes"] },
-      { title: "Technical Knits", sub: "Stretch, wicking and recycled yarns", image: "/images/work-render.jpg", imageAlt: "Technical material", sku: 28, specs: ["Recycled polyester blends", "4-way stretch", "Moisture-wicking finish"] },
-      { title: "Seasonal Colour Story", sub: "Autumn palette, 48 dyed shades", image: "/images/work-app.jpg", imageAlt: "Warm toned palette", sku: 48, specs: ["Pantone matched", "Lab-dip approval", "Minimum order 300 m"] },
-    ],
+    id: "house-of-sutram",
+    title: "Premium Kitchenware & Gifting",
+    client: "House of Sutram",
+    industry: "Kitchenware & corporate gifting",
+    year: "Current edition",
+    blurb: "House of Sutram's original catalogue of premium kitchenware and corporate gifting, presented with its original artwork and product details.",
+    plates: [],
+    pages: cataloguePages.houseOfSutram.pages,
+    pdf: cataloguePages.houseOfSutram.pdf,
   },
 ];
 

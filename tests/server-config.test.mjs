@@ -205,19 +205,41 @@ test("concurrent requests reuse one connection; failed connections can retry", a
   assert.equal(transport.connect.mock.callCount(), 3);
 });
 
-test("unconfigured editorial content preserves the original bundled catalogue and projects", async () => {
+test("unconfigured editorial content serves the supplied catalogues and bundled projects", async () => {
   assert.deepEqual(await getCatalogues(), CATALOGUES);
   assert.deepEqual(await getProjects(), PROJECTS);
 });
 
-test("MongoDB content retains the public catalogue shape and embedded plate order", async () => {
+test("MongoDB catalogue reads retain both supplied PDF catalogues without duplicates", async () => {
   mongo();
   const catalogue = CATALOGUES[0];
   mock.method(Collection.prototype, "find", () => ({
     sort() { return this; },
     async toArray() { return [{ ...catalogue, _id: new ObjectId(), id: 1, slug: catalogue.id, published: true, sortOrder: 0 }]; },
   }));
-  assert.deepEqual(await getCatalogues(), [catalogue]);
+  assert.deepEqual(await getCatalogues(), CATALOGUES);
+});
+
+test("previously seeded dummy catalogues cannot replace the supplied PDFs", async () => {
+  mongo();
+  mock.method(Collection.prototype, "find", () => ({
+    sort() { return this; },
+    async toArray() { return ["apex-spares", "vedic-surfaces", "kalyan-textiles"].map(slug => ({ slug, published: true })); },
+  }));
+  assert.deepEqual(await getCatalogues(), CATALOGUES);
+});
+
+test("additional real database catalogues preserve their plate order alongside the supplied PDFs", async () => {
+  mongo();
+  const custom = { id: "custom", title: "Custom", client: "Client", industry: "Products", year: "2026", blurb: "A real catalogue", plates: [
+    { title: "First", sub: "", image: "/custom-1.jpg", imageAlt: "First", sku: 2, specs: [] },
+    { title: "Second", sub: "", image: "/custom-2.jpg", imageAlt: "Second", sku: 3, specs: [] },
+  ] };
+  mock.method(Collection.prototype, "find", () => ({
+    sort() { return this; },
+    async toArray() { return [{ ...custom, slug: custom.id }]; },
+  }));
+  assert.deepEqual(await getCatalogues(), [custom, ...CATALOGUES]);
 });
 
 test("enquiries keep their existing defaults in MongoDB", async () => {

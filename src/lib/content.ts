@@ -34,13 +34,25 @@ export const getProjects = () => fromDb<ProjectItem>("projects", async (db) =>
     results: r.results.map((m) => ({ value: m.value, prefix: m.prefix, suffix: m.suffix, decimals: m.decimals ?? 0, label: m.label })),
   })), bundled.PROJECTS);
 
-export const getCatalogues = () => fromDb<CatalogueItem>("catalogues", async (db) =>
-  (await db.catalogues.find({ published: true }).sort({ sortOrder: 1 }).toArray()).map((r) => ({
-    id: r.slug, title: r.title, client: r.client, industry: r.industry, year: r.year,
-    blurb: r.blurb, plates: r.plates.map((p) => ({
-      title: p.title, sub: p.sub, image: p.image, imageAlt: p.imageAlt, sku: p.sku, specs: p.specs,
-    })),
-  })), bundled.CATALOGUES);
+const retiredCatalogueIds = new Set(["apex-spares", "vedic-surfaces", "kalyan-textiles"]);
+
+export const getCatalogues = () => fromDb<CatalogueItem>("catalogues", async (db) => {
+  const records = await db.catalogues.find({ published: true }).sort({ sortOrder: 1 }).toArray();
+  const catalogues: CatalogueItem[] = records.filter((r) => !retiredCatalogueIds.has(r.slug)).map((r) => {
+    // The supplied PDFs replace demo entries even in an already seeded database.
+    const supplied = bundled.CATALOGUES.find((catalogue) => catalogue.id === r.slug);
+    if (supplied) return supplied;
+    return {
+      id: r.slug, title: r.title, client: r.client, industry: r.industry, year: r.year,
+      blurb: r.blurb, plates: r.plates.map((p) => ({
+        title: p.title, sub: p.sub, image: p.image, imageAlt: p.imageAlt, sku: p.sku, specs: p.specs,
+      })),
+      ...(r.pages ? { pages: r.pages } : {}),
+      ...(r.pdf ? { pdf: r.pdf } : {}),
+    };
+  });
+  return [...catalogues, ...bundled.CATALOGUES.filter((supplied) => !catalogues.some((c) => c.id === supplied.id))];
+}, bundled.CATALOGUES);
 
 export const getPosts = () => fromDb<BlogPost>("posts", async (db) =>
   (await db.posts.find({ published: true }).sort({ publishedAt: -1 }).toArray()).map((r) => ({

@@ -9,38 +9,10 @@ import { isReducedMotion, onReady, scrollToTarget, useIsoLayoutEffect } from "@/
 import { SITE } from "@/lib/site";
 import type { CatalogueItem } from "@/data/siteData";
 import { TargetLogo } from "@/components/ui/brand";
-
-type PageData =
-  | { kind: "cover"; title: string; client: string; industry: string; year: string }
-  | { kind: "intro"; title: string; blurb: string; client: string; skus: number }
-  | { kind: "plate"; n: number; title: string; sub: string; image: string; alt: string; sku: number; specs: string[] }
-  | { kind: "contact" }
-  | { kind: "end"; client: string }
-  | { kind: "blank" };
-
-function buildPages(c: CatalogueItem): PageData[] {
-  const pages: PageData[] = [
-    { kind: "cover", title: c.title, client: c.client, industry: c.industry, year: c.year },
-    { kind: "intro", title: c.title, blurb: c.blurb, client: c.client, skus: c.plates.reduce((a, p) => a + p.sku, 0) },
-    ...c.plates.map((p, i) => ({
-      kind: "plate" as const,
-      n: i + 1,
-      title: p.title,
-      sub: p.sub,
-      image: p.image,
-      alt: p.imageAlt,
-      sku: p.sku,
-      specs: p.specs,
-    })),
-    { kind: "contact" },
-    { kind: "end", client: c.client },
-  ];
-  if (pages.length % 2 === 1) pages.splice(pages.length - 1, 0, { kind: "blank" });
-  return pages;
-}
+import { buildCataloguePages, type CataloguePageData } from "@/lib/cataloguePages";
 
 /** One printed page. Sizes use container-query units so it scales with the book. */
-function Face({ page, side, index }: { page: PageData; side: "l" | "r"; index: number }) {
+function Face({ page, side, index, eager = false }: { page: CataloguePageData; side: "l" | "r"; index: number; eager?: boolean }) {
   const spine =
     side === "r" ? "bg-gradient-to-r from-black/30 via-black/5 to-transparent" : "bg-gradient-to-l from-black/30 via-black/5 to-transparent";
   const spineSide = side === "r" ? "left-0" : "right-0";
@@ -51,6 +23,19 @@ function Face({ page, side, index }: { page: PageData; side: "l" | "r"; index: n
   let tone = paper;
 
   switch (page.kind) {
+    case "document":
+      body = (
+        <Image
+          src={page.src}
+          alt={page.alt}
+          fill
+          sizes="(min-width:1024px) 465px, (min-width:768px) 47vw, 75vw"
+          className="object-contain"
+          unoptimized
+          loading={eager ? "eager" : "lazy"}
+        />
+      );
+      break;
     case "cover":
       tone = dark;
       body = (
@@ -145,7 +130,7 @@ function Face({ page, side, index }: { page: PageData; side: "l" | "r"; index: n
     <div className={`absolute inset-0 overflow-hidden [container-type:inline-size] ${tone}`}>
       {body}
       <div aria-hidden className={`pointer-events-none absolute inset-y-0 ${spineSide} w-[14%] ${spine}`} />
-      {page.kind !== "cover" && page.kind !== "end" && (
+      {page.kind !== "cover" && page.kind !== "end" && page.kind !== "document" && (
         <span className={`absolute bottom-[4cqw] ${side === "r" ? "right-[7cqw]" : "left-[7cqw]"} font-mono text-[2.2cqw] tracking-[0.2em] opacity-60`}>
           {String(index + 1).padStart(2, "0")}
         </span>
@@ -170,7 +155,7 @@ export function FlipBook({
   variant?: "pinned" | "inline";
   controls?: boolean;
 }) {
-  const pages = useMemo(() => buildPages(catalogue), [catalogue]);
+  const pages = useMemo(() => buildCataloguePages(catalogue), [catalogue]);
   const sheets = useMemo(
     () => Array.from({ length: pages.length / 2 }, (_, i) => ({ front: pages[i * 2], back: pages[i * 2 + 1], i })),
     [pages]
@@ -209,7 +194,8 @@ export function FlipBook({
         });
         const open = Math.min(1, p * n);
         const close = Math.max(0, p * n - (n - 1));
-        gsap.set(bookEl, { xPercent: -25 * (1 - open) + 25 * close });
+        // Keep the dedicated viewer's full two-page frame centered, including its backing.
+        gsap.set(bookEl, { xPercent: variant === "pinned" ? 0 : -25 * (1 - open) + 25 * close });
         if (label.current) {
           const k = Math.round(p * n);
           label.current.textContent = k === 0 ? "Front cover" : k === n ? "Back cover" : `Pages ${k * 2}–${k * 2 + 1} of ${n * 2}`;
@@ -324,10 +310,10 @@ export function FlipBook({
                 className="absolute right-0 top-0 h-full w-1/2 [transform-style:preserve-3d]"
               >
                 <div className="absolute inset-0 overflow-hidden rounded-r-md [backface-visibility:hidden]">
-                  <Face page={s.front} side="r" index={s.i * 2} />
+                  <Face page={s.front} side="r" index={s.i * 2} eager={variant === "pinned" && s.i === 0} />
                 </div>
                 <div className="absolute inset-0 overflow-hidden rounded-l-md [backface-visibility:hidden] [transform:rotateY(180deg)]">
-                  <Face page={s.back} side="l" index={s.i * 2 + 1} />
+                  <Face page={s.back} side="l" index={s.i * 2 + 1} eager={variant === "pinned" && s.i === 0} />
                 </div>
               </div>
             ))}
@@ -338,7 +324,7 @@ export function FlipBook({
         <div className="-mx-[var(--gutter)] flex w-[calc(100%+calc(2*var(--gutter)))] snap-x snap-mandatory gap-3.5 overflow-x-auto px-[var(--gutter)] pb-4 md:hidden [scrollbar-width:none]" data-cursor="Drag">
           {pages.map((p, i) => (
             <div key={i} className="relative aspect-[3/4] w-[75vw] max-w-[290px] shrink-0 snap-center overflow-hidden rounded-xl shadow-2xl">
-              <Face page={p} side="r" index={i} />
+              <Face page={p} side="r" index={i} eager={variant === "pinned" && i < 2} />
             </div>
           ))}
         </div>
