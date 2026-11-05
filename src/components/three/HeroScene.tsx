@@ -180,15 +180,16 @@ function Embers({ fade, light }: { fade: Fade; light: boolean }) {
   const mat = useRef<THREE.PointsMaterial>(null);
   const { positions, colors } = useMemo(() => {
     const n = 520;
+    const random = (i: number) => { const value = Math.sin(i * 127.1 + 311.7) * 43758.5453; return value - Math.floor(value); };
     const positions = new Float32Array(n * 3);
     const colors = new Float32Array(n * 3);
     const warm = new THREE.Color(EMBER);
     const gold = new THREE.Color(TINT);
     for (let i = 0; i < n; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 26;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 16;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 14 - 2;
-      const c = Math.random() > 0.4 ? warm : gold;
+      positions[i * 3] = (random(i * 4) - 0.5) * 26;
+      positions[i * 3 + 1] = (random(i * 4 + 1) - 0.5) * 16;
+      positions[i * 3 + 2] = (random(i * 4 + 2) - 0.5) * 14 - 2;
+      const c = random(i * 4 + 3) > 0.4 ? warm : gold;
       colors.set([c.r, c.g, c.b], i * 3);
     }
     return { positions, colors };

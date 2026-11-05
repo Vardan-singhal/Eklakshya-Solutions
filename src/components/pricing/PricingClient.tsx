@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
+import * as motion from "framer-motion/m";
 import { Check, Plus } from "lucide-react";
 import type { PricingTier } from "@/data/siteData";
 import { Button, TiltCard } from "@/components/ui/interactive";

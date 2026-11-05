@@ -1,5 +1,10 @@
 "use client";
 
+import { ScenePreparation } from "./ScenePreparation";
+import { servicePixelRatio } from "./useGraphics";
+import { SceneCompilation } from "./SceneCompilation";
+import { SceneWarmup } from "./SceneWarmup";
+
 import { Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
@@ -269,25 +274,32 @@ function Rig({ children }: { children: ReactNode }) {
   );
 }
 
-export default function ServiceObject({ kind, light }: { kind: ServiceKind; light: boolean }) {
+export default function ServiceObject({ kind, light, renderActive = true }: { kind: ServiceKind; light: boolean; renderActive?: boolean }) {
   return (
-    <Canvas
-      dpr={[1, 1.5]}
-      camera={{ position: [0, 0, 5.6], fov: 40 }}
-      gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-      style={{ position: "absolute", inset: 0 }}
-    >
-      <Suspense fallback={null}>
-        <ambientLight intensity={light ? 0.9 : 0.45} />
-        <pointLight position={[3, 3, 4]} intensity={50} color={C.ember} distance={16} decay={2} />
-        <pointLight position={[-3, -2, 3]} intensity={30} color={C.tint} distance={16} decay={2} />
-        <Environment resolution={128} frames={1}>
-          <Lightformer form="rect" intensity={5} color={C.ember} position={[-3, 2, 3]} scale={[5, 3, 1]} />
-          <Lightformer form="rect" intensity={4} color={C.tint} position={[3, -1, 3]} scale={[4, 3, 1]} />
-          <Lightformer form="ring" intensity={3} color="#ffffff" position={[0, 4, -2]} scale={3} />
-        </Environment>
-        <Rig>{OBJECTS[kind]()}</Rig>
-      </Suspense>
-    </Canvas>
+    <ScenePreparation name={kind}>
+      {(onPrepared) => (
+        <Canvas
+          frameloop={renderActive ? "always" : "demand"}
+          dpr={servicePixelRatio(renderActive)}
+          camera={{ position: [0, 0, 5.6], fov: 40 }}
+          gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+          style={{ position: "absolute", inset: 0 }}
+        >
+          <Suspense fallback={null}>
+            <ambientLight intensity={light ? 0.9 : 0.45} />
+            <pointLight position={[3, 3, 4]} intensity={50} color={C.ember} distance={16} decay={2} />
+            <pointLight position={[-3, -2, 3]} intensity={30} color={C.tint} distance={16} decay={2} />
+            <Environment resolution={128} frames={1}>
+              <Lightformer form="rect" intensity={5} color={C.ember} position={[-3, 2, 3]} scale={[5, 3, 1]} />
+              <Lightformer form="rect" intensity={4} color={C.tint} position={[3, -1, 3]} scale={[4, 3, 1]} />
+              <Lightformer form="ring" intensity={3} color="#ffffff" position={[0, 4, -2]} scale={3} />
+            </Environment>
+            <Rig>{OBJECTS[kind]()}</Rig>
+          </Suspense>
+          <SceneCompilation />
+          <SceneWarmup onRendered={onPrepared} />
+        </Canvas>
+      )}
+    </ScenePreparation>
   );
 }

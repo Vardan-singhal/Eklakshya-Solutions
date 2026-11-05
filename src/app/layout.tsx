@@ -1,10 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import localFont from "next/font/local";
+
 import { themeScript } from "@/lib/theme";
 import { SITE } from "@/lib/site";
 import { getServices } from "@/lib/content";
 import { organizationLd, websiteLd } from "@/lib/seo";
 import { JsonLd } from "@/components/ui/JsonLd";
+import { MotionProvider } from "@/components/providers/MotionProvider";
 import { SmoothScroll } from "@/components/providers/SmoothScroll";
 import { Preloader } from "@/components/shell/Preloader";
 import { PageTransition } from "@/components/shell/PageTransition";
@@ -14,6 +17,18 @@ import { BackgroundField } from "@/components/shell/BackgroundField";
 import { Navbar } from "@/components/shell/Navbar";
 import { Footer } from "@/components/shell/Footer";
 import { SocialDrawer } from "@/components/shell/SocialDrawer";
+
+const displayFont = localFont({ src: [
+  { path: "./fonts/clash-display-500.woff2", weight: "500" },
+  { path: "./fonts/clash-display-600.woff2", weight: "600" },
+  { path: "./fonts/clash-display-700.woff2", weight: "700" },
+], variable: "--font-brand-display", display: "swap", preload: true });
+const bodyFont = localFont({ src: [
+  { path: "./fonts/satoshi-400.woff2", weight: "400" },
+  { path: "./fonts/satoshi-500.woff2", weight: "500" },
+  { path: "./fonts/satoshi-700.woff2", weight: "700" },
+], variable: "--font-brand-sans", display: "swap", preload: true });
+const monoFont = localFont({ src: [{ path: "./fonts/jetbrains-mono-latin.woff2", weight: "400 600" }], variable: "--font-brand-mono", display: "swap", preload: false });
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
@@ -60,26 +75,15 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const services = (await getServices()).slice(0, 5).map((s) => ({ label: s.title, href: `/services#${s.id}` }));
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={`${displayFont.variable} ${bodyFont.variable} ${monoFont.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-        <link rel="dns-prefetch" href="https://api.fontshare.com" />
-        <link rel="dns-prefetch" href="https://cdn.fontshare.com" />
-        <link rel="preconnect" href="https://api.fontshare.com" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://cdn.fontshare.com" crossOrigin="anonymous" />
-        {/* Fontshare only returns the first family when two are requested at once → two stylesheets */}
-        <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&display=swap" />
-        <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" />
-        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-        <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" />
         <noscript>
           <style>{`.preloader{display:none!important}html.is-loading{overflow:auto}`}</style>
         </noscript>
       </head>
       <body>
+        <MotionProvider>
         <JsonLd data={[organizationLd, websiteLd]} />
         <a
           href="#main"
@@ -102,6 +106,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           <SocialDrawer />
         </PageTransition>
         <div className="grain" aria-hidden="true" />
+        </MotionProvider>
       </body>
     </html>
   );

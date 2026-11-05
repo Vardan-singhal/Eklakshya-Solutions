@@ -1,5 +1,10 @@
 "use client";
 
+import { ScenePreparation } from "./ScenePreparation";
+import { servicePixelRatio } from "./useGraphics";
+import { SceneCompilation } from "./SceneCompilation";
+import { SceneWarmup } from "./SceneWarmup";
+
 /** Model-only adaptation of seo three.js/src/SeoScene.jsx.
  * The existing service card provides layout and decoration; preview HTML is excluded. */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useReducer, useSyncExternalStore } from 'react'
@@ -892,7 +897,7 @@ const getReducedSnapshot = () => window.matchMedia('(prefers-reduced-motion: red
 const getServerSnapshot = () => true;
 const ignoreHover = () => {};
 
-export default function SeoScene({ light = false }) {
+export default function SeoScene({ light = false, renderActive = true }) {
   const [state, dispatch] = useReducer(sceneReducer, initialState);
   const timelineRef = useRef({ time: 0, elapsed: 0, progress: 0, stage: 0, weights: [1, 0, 0, 0, 0] });
   const coarse = useSyncExternalStore(subscribePreferences, getCoarseSnapshot, getServerSnapshot);
@@ -919,11 +924,12 @@ export default function SeoScene({ light = false }) {
   const pickKeyword = useCallback((item) => dispatch({ type: 'target', item }), []);
 
   useEffect(() => {
+    if (!renderActive) return;
     if (!state.playing || reduced || (state.stage !== 1 && state.stage !== 2)) return;
     const type = state.stage === 1 ? 'fixNext' : 'schemaNext';
     const timer = window.setInterval(() => dispatch({ type }), state.stage === 1 ? 720 : 900);
     return () => window.clearInterval(timer);
-  }, [state.stage, state.playing, reduced]);
+  }, [state.stage, state.playing, reduced, renderActive]);
 
   return (
     <div
@@ -951,22 +957,29 @@ export default function SeoScene({ light = false }) {
         }
       }}
     >
-      <Canvas
-        dpr={[1, 1.5]}
-        gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }}
-        camera={{ position: [0, 0, 9], fov: 35, near: 0.1, far: 40 }}
-        style={{ position: 'absolute', inset: 0, background: 'transparent', touchAction: coarse ? 'pan-y' : 'none' }}
-      >
-        <Timeline timelineRef={timelineRef} playing={state.playing && !reduced} advance={advance} />
-        {!coarse && <ReturningOrbit onManual={pause} />}
-        <World timelineRef={timelineRef}>
-          <DemandModel timelineRef={timelineRef} data={data} active={state.stage === 0} gold={gold} cyan={cyan} />
-          <AuditModel timelineRef={timelineRef} fixed={state.fixed} active={state.stage === 1} gold={gold} cyan={cyan} />
-          <SchemaCards timelineRef={timelineRef} data={data} enabled={state.schema} faqOpen={state.faqOpen} toggle={toggleSchema} toggleFaq={toggleFaq} active={state.stage === 2} gold={gold} cyan={cyan} />
-          <GapMap timelineRef={timelineRef} data={data} active={state.stage === 3} hover={null} onHover={ignoreHover} onPick={pickKeyword} targets={state.targets} gold={gold} cyan={cyan} />
-          <SerpClimb timelineRef={timelineRef} data={data} before={state.before} active={state.stage === 4} gold={gold} cyan={cyan} />
-        </World>
-      </Canvas>
+      <ScenePreparation name="seo">
+        {(onPrepared) => (
+          <Canvas
+            frameloop={renderActive ? "always" : "demand"}
+            dpr={servicePixelRatio(renderActive)}
+            gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }}
+            camera={{ position: [0, 0, 9], fov: 35, near: 0.1, far: 40 }}
+            style={{ position: 'absolute', inset: 0, background: 'transparent', touchAction: coarse ? 'pan-y' : 'none' }}
+          >
+            <Timeline timelineRef={timelineRef} playing={state.playing && !reduced} advance={advance} />
+            {!coarse && <ReturningOrbit onManual={pause} />}
+            <World timelineRef={timelineRef}>
+              <DemandModel timelineRef={timelineRef} data={data} active={state.stage === 0} gold={gold} cyan={cyan} />
+              <AuditModel timelineRef={timelineRef} fixed={state.fixed} active={state.stage === 1} gold={gold} cyan={cyan} />
+              <SchemaCards timelineRef={timelineRef} data={data} enabled={state.schema} faqOpen={state.faqOpen} toggle={toggleSchema} toggleFaq={toggleFaq} active={state.stage === 2} gold={gold} cyan={cyan} />
+              <GapMap timelineRef={timelineRef} data={data} active={state.stage === 3} hover={null} onHover={ignoreHover} onPick={pickKeyword} targets={state.targets} gold={gold} cyan={cyan} />
+              <SerpClimb timelineRef={timelineRef} data={data} before={state.before} active={state.stage === 4} gold={gold} cyan={cyan} />
+            </World>
+            <SceneCompilation />
+            <SceneWarmup onRendered={onPrepared} />
+          </Canvas>
+        )}
+      </ScenePreparation>
     </div>
   );
 }

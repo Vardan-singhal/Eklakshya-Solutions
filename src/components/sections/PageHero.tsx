@@ -54,7 +54,7 @@ export function PageHero({
         </Reveal>
         <SplitText as="h1" mode="load" delay={0.1} text={title} className={`${size === "lg" ? "t-h1" : "t-h2"} mt-6 max-w-5xl`} />
         {intro && (
-          <Reveal mode="load" delay={0.5} y={20} className="mt-8 max-w-2xl">
+          <Reveal mode="load" delay={0.15} y={20} className="mt-8 max-w-2xl">
             <p className="t-lead">{intro}</p>
           </Reveal>
         )}

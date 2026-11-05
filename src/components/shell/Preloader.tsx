@@ -7,7 +7,7 @@ import { engine, isReducedMotion, markReady, useIsoLayoutEffect } from "@/lib/en
 
 /**
  * Page-load preloader: every fresh visit and reload gets a visible 0–100 counter.
- * Once the progress animation and font wait finish, a shutter
+ * Once the short progress animation and bounded font wait finish, a shutter
  * splits open. It is server-rendered (covers the page from the first byte) and the
  * real content stays in the DOM underneath for crawlers.
  */
@@ -58,37 +58,37 @@ export function Preloader() {
       }
       exitAnimation = gsap
         .timeline({ onComplete: finish })
-        .to(all("[data-content]"), { scale: 1.4, opacity: 0, duration: 0.35, ease: "power3.in" }, 0)
-        .to(all("[data-seam]"), { scaleX: 0, duration: 0.25, ease: "power3.in" }, 0.1)
-        .to(all("[data-panel='top']"), { yPercent: -100, duration: 0.5, ease: "power4.inOut" }, 0.2)
-        .to(all("[data-panel='bottom']"), { yPercent: 100, duration: 0.5, ease: "power4.inOut" }, 0.2);
+        .to(all("[data-content]"), { scale: 1.4, opacity: 0, duration: 0.18, ease: "power3.in" }, 0)
+        .to(all("[data-seam]"), { scaleX: 0, duration: 0.15, ease: "power3.in" }, 0.05)
+        .to(all("[data-panel='top']"), { yPercent: -100, duration: 0.25, ease: "power4.inOut" }, 0.1)
+        .to(all("[data-panel='bottom']"), { yPercent: 100, duration: 0.25, ease: "power4.inOut" }, 0.1);
     };
 
     const ctx = gsap.context(() => {
       if (reduced) return;
       gsap
         .timeline({ defaults: { ease: "power3.out" } })
-        .from(all("[data-logo]"), { opacity: 0, scale: 0.9, duration: 0.8 }, 0)
-        .from(all("[data-brand]"), { opacity: 0, y: 16, duration: 0.6 }, 0.35)
-        .from(all("[data-tag]"), { opacity: 0, y: 12, duration: 0.5 }, 0.6);
+        .from(all("[data-logo]"), { opacity: 0, scale: 0.9, duration: 0.3 }, 0)
+        .from(all("[data-brand]"), { opacity: 0, y: 16, duration: 0.25 }, 0.1)
+        .from(all("[data-tag]"), { opacity: 0, y: 12, duration: 0.2 }, 0.2);
     }, el);
 
     // Always show steady progress, including when all assets are cached.
     render();
     const fontsReady = (document.fonts?.ready ?? Promise.resolve()).then(() => undefined);
-    const fonts = Promise.race([fontsReady, wait(3000)]);
+    const fonts = Promise.race([fontsReady, wait(400)]);
     const progress = new Promise<void>((resolve) => {
-      gsap.to(state, { v: 90, duration: 2.4, ease: "none", onUpdate: render, onComplete: resolve });
+      gsap.to(state, { v: 90, duration: reduced ? 0 : 0.3, ease: "none", onUpdate: render, onComplete: resolve });
     });
 
     Promise.all([progress, fonts]).then(() => {
       if (cancelled) return;
       gsap.to(state, {
         v: 100,
-        duration: 0.6,
+        duration: reduced ? 0 : 0.1,
         ease: "none",
         onUpdate: render,
-        onComplete: () => { timers.push(window.setTimeout(exit, 300)); },
+        onComplete: () => { timers.push(window.setTimeout(exit, 20)); },
       });
     });
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import * as motion from "framer-motion/m";
 import type { Testimonial } from "@/data/siteData";
 import { Section, SectionHeader } from "@/components/ui/layout";
 

@@ -1,5 +1,10 @@
 "use client";
 
+import { ScenePreparation } from "./ScenePreparation";
+import { servicePixelRatio } from "./useGraphics";
+import { SceneCompilation } from "./SceneCompilation";
+import { SceneWarmup } from "./SceneWarmup";
+
 /** 3D model adapted from app three.js/src/AppDevScene.jsx.
  * The existing service card owns the page layout, labels, and decoration. */
 import {
@@ -1786,25 +1791,28 @@ function subscribePointer(callback) {
 const getTouchSnapshot = () => window.matchMedia("(pointer: coarse)").matches;
 const getServerTouchSnapshot = () => true;
 
-export default function AppDevScene({ light = false }) {
+export default function AppDevScene({ light = false, renderActive = true }) {
   const [state, dispatch] = useReducer(sceneReducer, initialState);
   const isTouch = useSyncExternalStore(subscribePointer, getTouchSnapshot, getServerTouchSnapshot);
   const gold = light ? "#b87d14" : "#f5c451";
   const cyan = light ? "#0077b6" : "#6cc7e8";
 
   useEffect(() => {
+    if (!renderActive) return;
     if (state.online) return;
     const id = window.setInterval(() => dispatch({ type: "queue" }), 650);
     return () => window.clearInterval(id);
-  }, [state.online]);
+  }, [state.online, renderActive]);
 
   useEffect(() => {
+    if (!renderActive) return;
     if (!state.autoPlay) return;
     const id = window.setInterval(() => dispatch({ type: "advance" }), 3200);
     return () => window.clearInterval(id);
-  }, [state.autoPlay]);
+  }, [state.autoPlay, renderActive]);
 
   useEffect(() => {
+    if (!renderActive) return;
     if (!state.autoPlay) return;
     const timers = [];
     if (state.feature === 0) {
@@ -1815,7 +1823,7 @@ export default function AppDevScene({ light = false }) {
       timers.push(window.setTimeout(() => dispatch({ type: "network", online: true }), 2300));
     }
     return () => timers.forEach((timer) => window.clearTimeout(timer));
-  }, [state.feature, state.autoPlay]);
+  }, [state.feature, state.autoPlay, renderActive]);
 
   const onIconClick = useCallback((icon) => dispatch({ type: "icon", icon }), []);
   const onToggleOnline = useCallback(() => dispatch({ type: "network", manual: true }), []);
@@ -1823,17 +1831,24 @@ export default function AppDevScene({ light = false }) {
 
   return (
     <div className="absolute inset-0" onPointerDownCapture={() => dispatch({ type: "pause" })}>
-      <Canvas
-        gl={{ alpha: true, antialias: true, powerPreference: "high-performance" }}
-        dpr={[1, 1.5]}
-        camera={{ position: [0, 0, 8.45], fov: 44 }}
-        style={{ position: "absolute", inset: 0, background: "transparent", touchAction: isTouch ? "pan-y" : "none" }}
-      >
-        <SceneRoot
-          state={state} gold={gold} cyan={cyan} enableRotate={!isTouch}
-          onIconClick={onIconClick} onToggleOnline={onToggleOnline} onScreenAction={onScreenAction}
-        />
-      </Canvas>
+      <ScenePreparation name="app">
+        {(onPrepared) => (
+          <Canvas
+            frameloop={renderActive ? "always" : "demand"}
+            gl={{ alpha: true, antialias: true, powerPreference: "high-performance" }}
+            dpr={servicePixelRatio(renderActive)}
+            camera={{ position: [0, 0, 8.45], fov: 44 }}
+            style={{ position: "absolute", inset: 0, background: "transparent", touchAction: isTouch ? "pan-y" : "none" }}
+          >
+            <SceneRoot
+              state={state} gold={gold} cyan={cyan} enableRotate={!isTouch}
+              onIconClick={onIconClick} onToggleOnline={onToggleOnline} onScreenAction={onScreenAction}
+            />
+            <SceneCompilation />
+            <SceneWarmup onRendered={onPrepared} />
+          </Canvas>
+        )}
+      </ScenePreparation>
     </div>
   );
 }

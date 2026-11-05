@@ -53,7 +53,7 @@ export default async function ServicesPage() {
         crumbs={[{ name: "Home", href: "/" }, { name: "Services", href: "/services" }]}
       />
 
-      <div className="sticky top-[3.75rem] z-30 border-y border-line bg-bg/70 backdrop-blur-xl sm:top-[4.6rem]">
+      <div data-section-navigation className="sticky top-[var(--nav-height,4.6rem)] z-30 border-y border-line bg-bg/70 backdrop-blur-xl">
         <nav aria-label="Services" className="container-x flex gap-2 overflow-x-auto py-3 [scrollbar-width:none]">
           {services.map((s, i) => (
             <a key={s.id} href={`#${s.id}`} className="t-label shrink-0 rounded-full border border-line px-3.5 py-1.5 sm:px-4 sm:py-2 transition-colors hover:border-ember hover:text-fg">
@@ -114,7 +114,7 @@ export default async function ServicesPage() {
                     </div>
                     <div>
                       <p className="t-label mb-2 flex items-center gap-2">
-                        <Wallet className="h-3.5 w-3.5" aria-hidden /> From
+                        <Wallet className="h-3.5 w-3.5" aria-hidden /> Project quote
                       </p>
                       <p className="t-h4">{s.from}</p>
                     </div>

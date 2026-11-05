@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import * as motion from "framer-motion/m";
 import { Check, Lock, X } from "lucide-react";
 import { engine } from "@/lib/engine";
 import { type PricingTier } from "@/data/siteData";

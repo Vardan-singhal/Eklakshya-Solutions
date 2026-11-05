@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { observeStackOcclusion } from "@/lib/modelVisibility";
 
 let webglCache: boolean | null = null;
+// Preserve activation across route changes and late-mounted service cards.
+let graphicsInteractionStarted = false;
 function hasWebGL() {
   if (webglCache !== null) return webglCache;
   try {
@@ -21,7 +24,7 @@ function hasWebGL() {
  * reduced-motion, data-saver and no-WebGL browsers get the static SVG fallback.
  * Add ?force3d to the URL to bypass the heuristics when testing.
  */
-export function useCanRender3D(minWidth = 768) {
+export function useCanRender3D(minWidth = 768, onInteraction = false) {
   const [ok, setOk] = useState(false);
   useEffect(() => {
     const force = new URLSearchParams(window.location.search).has("force3d");
@@ -31,22 +34,46 @@ export function useCanRender3D(minWidth = 768) {
     const lowCpu = typeof nav.hardwareConcurrency === "number" && nav.hardwareConcurrency < 4;
     const saveData = !!nav.connection?.saveData;
     const capable = force || (!reduced && !lowMem && !lowCpu && !saveData && window.innerWidth >= minWidth);
-    const t = window.setTimeout(() => setOk(capable && hasWebGL()), 0);
-    return () => window.clearTimeout(t);
-  }, [minWidth]);
+    if (!capable) return;
+    // Keep the animated SVG visible until the interactive renderer is needed.
+    const events = ["pointermove", "pointerdown", "keydown", "wheel", "scroll"] as const;
+    let frame = 0;
+    const removeListeners = () => events.forEach((event) => window.removeEventListener(event, activate));
+    const activate = (event?: Event) => {
+      if (event) graphicsInteractionStarted = true;
+      removeListeners();
+      frame = requestAnimationFrame(() => setOk(hasWebGL()));
+    };
+    if (onInteraction && !force && !graphicsInteractionStarted) {
+      events.forEach((event) => window.addEventListener(event, activate, { passive: true, once: true }));
+    } else {
+      activate();
+    }
+    return () => { removeListeners(); cancelAnimationFrame(frame); };
+  }, [minWidth, onInteraction]);
   return ok;
 }
 
-/** True while the element is within `margin` of the viewport. */
-export function useInView<T extends HTMLElement>(margin = "200px") {
+/** Track visibility only; service renderer lifetime does not depend on this flag. */
+export function useInView<T extends HTMLElement>(margin = "200px", stackAware = false) {
   const ref = useRef<T>(null);
   const [inView, setInView] = useState(false);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const io = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { rootMargin: margin });
+    let intersects = false;
+    let covered = false;
+    const update = () => setInView(intersects && !covered && !document.hidden);
+    const stopOcclusion = stackAware ? observeStackOcclusion(el, () => intersects, (value) => { covered = value; update(); }) : () => {};
+    const io = new IntersectionObserver(([entry]) => { intersects = entry.isIntersecting; update(); }, { rootMargin: margin });
     io.observe(el);
-    return () => io.disconnect();
-  }, [margin]);
+    document.addEventListener("visibilitychange", update);
+    return () => { io.disconnect(); stopOcclusion(); document.removeEventListener("visibilitychange", update); };
+  }, [margin, stackAware]);
   return [ref, inView] as const;
+}
+
+/** Hidden warm-up uses fewer pixels; restore normal quality before viewport entry. */
+export function servicePixelRatio(active: boolean): number | [number, number] {
+  return active ? [1, 1.5] : 0.5;
 }

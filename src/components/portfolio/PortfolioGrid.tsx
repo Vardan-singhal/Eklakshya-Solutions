@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
+import * as motion from "framer-motion/m";
 import { ArrowUpRight } from "lucide-react";
 import { PROJECT_FILTERS, type ProjectItem } from "@/data/siteData";
 import { Section } from "@/components/ui/layout";

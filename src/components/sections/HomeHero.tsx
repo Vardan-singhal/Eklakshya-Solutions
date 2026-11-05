@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { SCROLL_MOTION } from "@/lib/motionSettings";
 import { gsap } from "@/lib/gsap";
 import { engine, useIsoLayoutEffect } from "@/lib/engine";
 import { Hero3D } from "@/components/three/Hero3D";
@@ -12,7 +13,7 @@ import { Button } from "@/components/ui/interactive";
  * Cinematic pinned hero. While pinned, scroll progress (0→1) is written to
  * `engine.heroProgress`; the 3D scene reads it to dolly through the rings,
  * expand/fade them and fly the arrow at the camera. An ember circle then
- * wipes the screen, handing over to the Services section. scrub:true → reversible.
+ * wipes the screen, handing over to the Services section. Eased scrubbing remains reversible.
  */
 export function HomeHero() {
   const pin = useRef<HTMLDivElement>(null);
@@ -32,16 +33,15 @@ export function HomeHero() {
           start: "top top",
           end: "+=170%",
           pin: true,
-          scrub: true,
+          scrub: SCROLL_MOTION.scrub,
           anticipatePin: 1,
-          onUpdate: (self) => {
-            engine.heroProgress = self.progress;
-          },
         },
       });
       tl.to(text.current, { yPercent: -24, opacity: 0, duration: 0.35 }, 0)
         .to(hud.current, { opacity: 0, duration: 0.2 }, 0)
         .fromTo(flash.current, { scale: 0 }, { scale: 1, duration: 0.26, ease: "power2.in" }, 0.74);
+      // Keep the 3D camera synchronized with the eased text/wipe timeline.
+      tl.eventCallback("onUpdate", () => { engine.heroProgress = tl.progress(); });
       return () => {
         engine.heroProgress = 0;
       };
@@ -77,13 +77,13 @@ export function HomeHero() {
               className="t-display"
             />
 
-            <Reveal mode="load" delay={0.7} y={24} className="mt-6 sm:mt-8 max-w-lg">
+            <Reveal mode="load" delay={0.15} y={24} className="mt-6 sm:mt-8 max-w-lg">
               <p className="t-lead">
                 Websites, apps, SaaS products, 3D catalogues and AI visuals for startups, manufacturers and growing businesses — engineered with precision and shipped on time.
               </p>
             </Reveal>
 
-            <Reveal mode="load" delay={0.9} y={24} className="mt-8 sm:mt-10 flex flex-wrap items-center gap-3 sm:gap-4">
+            <Reveal mode="load" delay={0.25} y={24} className="mt-8 sm:mt-10 flex flex-wrap items-center gap-3 sm:gap-4">
               <Button href="/contact" size="lg" cursor="Let's talk">
                 Start a project
               </Button>

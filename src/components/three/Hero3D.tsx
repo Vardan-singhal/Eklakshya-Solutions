@@ -17,7 +17,7 @@ const Fallback = () => (
 
 /** Hero 3D target. WebGL on capable desktops; animated SVG everywhere else. */
 export function Hero3D() {
-  const can3D = useCanRender3D(900);
+  const can3D = useCanRender3D(900, true);
   const [ref, visible] = useInView<HTMLDivElement>("100px");
   const { theme } = useTheme();
 

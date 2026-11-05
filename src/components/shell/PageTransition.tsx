@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { motion, type Variants } from "framer-motion";
+import type { Variants } from "framer-motion";
+import * as motion from "framer-motion/m";
 import { engine, markReady, scrollToTarget } from "@/lib/engine";
-import { ScrollTrigger } from "@/lib/gsap";
+import { requestScrollRefresh } from "@/lib/gsap";
 import { TargetLogo } from "@/components/ui/brand";
 
 const COLS = 5;
@@ -15,12 +16,12 @@ const strip: Variants = {
   cover: (i: number) => ({
     scaleY: 1,
     originY: 1,
-    transition: { duration: 0.38, ease, delay: i * 0.035, originY: { duration: 0 } },
+    transition: { duration: 0.5, ease, delay: i * 0.045, originY: { duration: 0 } },
   }),
   reveal: (i: number) => ({
     scaleY: 0,
     originY: 0,
-    transition: { duration: 0.45, ease, delay: i * 0.035, originY: { duration: 0 } },
+    transition: { duration: 0.65, ease, delay: i * 0.045, originY: { duration: 0 } },
   }),
 };
 
@@ -52,87 +53,105 @@ export function PageTransition({ children }: { children: ReactNode }) {
   const phaseRef = useRef<Phase>("idle");
   const pending = useRef<string | null>(null);
   const prevPath = useRef(pathname);
+  const navigationTimer = useRef(0);
+  const anchorFrame = useRef(0);
+  const changePhase = useCallback((next: Phase) => {
+    phaseRef.current = next;
+    setPhase(next);
+  }, []);
+  const finishReveal = () => {
+    changePhase("idle");
+    if (!document.documentElement.classList.contains("menu-open")) engine.lenis?.start();
+    markReady();
+  };
 
   useEffect(() => {
-    phaseRef.current = phase;
-  }, [phase]);
-
-  // Intercept internal navigation
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-      const a = (e.target as Element | null)?.closest?.("a");
-      if (!a) return;
-      const href = a.getAttribute("href");
-      if (!href || a.hasAttribute("download") || (a.target && a.target !== "_self")) return;
-      if (/^(mailto:|tel:|https?:|\/\/)/.test(href)) return;
-
-      if (href.startsWith("#")) {
-        e.preventDefault();
-        e.stopPropagation();
-        scrollToTarget(href);
-        return;
-      }
-
+    const onClick = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const link = (event.target as Element | null)?.closest?.("a");
+      const href = link?.getAttribute("href");
+      if (!link || !href || link.hasAttribute("download") || (link.target && link.target !== "_self")) return;
       const url = new URL(href, window.location.href);
-      if (url.origin !== window.location.origin) return;
-
-      e.preventDefault();
-      e.stopPropagation();
-      window.dispatchEvent(new Event("ek:nav-click"));
+      if (url.origin !== window.location.origin || !["http:", "https:"].includes(url.protocol)) return;
+      // Query-only updates retain Next's normal handling; pathname cannot signal their completion.
+      if (url.pathname === window.location.pathname && url.search !== window.location.search) return;
+      event.preventDefault();
+      event.stopPropagation();
       if (phaseRef.current !== "idle") return;
-
+      window.dispatchEvent(new Event("ek:nav-click"));
       if (url.pathname === window.location.pathname) {
-        if (url.hash) scrollToTarget(url.hash);
-        else scrollToTarget(0, 0);
+        window.cancelAnimationFrame(anchorFrame.current);
+        anchorFrame.current = window.requestAnimationFrame(() => {
+          // Let the mobile menu release its scroll lock before the anchor animation.
+          scrollToTarget(url.hash || 0);
+          if (url.hash) history.replaceState(history.state, "", url.pathname + url.search + url.hash);
+        });
         return;
       }
-
       pending.current = url.pathname + url.search + url.hash;
+      router.prefetch(url.pathname + url.search);
       engine.ready = false;
+      engine.velocity = 0;
+      engine.lenis?.stop();
       setLabel(labelFor(url.pathname));
-      setPhase("cover");
+      changePhase("cover");
     };
     document.addEventListener("click", onClick, true);
     return () => document.removeEventListener("click", onClick, true);
+  }, [router, changePhase]);
+
+  useEffect(() => () => {
+    window.clearTimeout(navigationTimer.current);
+    window.cancelAnimationFrame(anchorFrame.current);
   }, []);
 
   const onCovered = () => {
     if (!pending.current) return;
-    router.push(pending.current);
-    // failsafe if navigation never lands
-    window.setTimeout(() => {
+    router.push(pending.current, { scroll: false });
+    window.clearTimeout(navigationTimer.current);
+    navigationTimer.current = window.setTimeout(() => {
       if (phaseRef.current === "cover") {
-        setPhase("reveal");
         markReady();
+        changePhase("reveal");
       }
-    }, 2000);
+    }, 8000);
   };
 
-  // New route mounted → scroll to top, refresh triggers, lift the curtain
   useEffect(() => {
     if (prevPath.current === pathname) return;
     prevPath.current = pathname;
-    window.scrollTo(0, 0);
-    engine.lenis?.scrollTo(0, { immediate: true, force: true });
+    window.clearTimeout(navigationTimer.current);
     const hash = pending.current ? new URL(pending.current, window.location.origin).hash : window.location.hash;
     pending.current = null;
-
-    const t = window.setTimeout(() => {
-      ScrollTrigger.refresh();
-      if (phaseRef.current === "cover") setPhase("reveal");
-      window.setTimeout(markReady, 150);
-      if (hash) window.setTimeout(() => scrollToTarget(hash), 600);
-    }, 100);
-    return () => window.clearTimeout(t);
-  }, [pathname]);
+    engine.velocity = 0;
+    engine.direction = 1;
+    engine.lenis?.scrollTo(0, { immediate: true, force: true });
+    window.scrollTo({ top: 0, behavior: "instant" });
+    let disposed = false;
+    let cancelRefresh = () => {};
+    const frame = window.requestAnimationFrame(() => {
+      // Let ready-dependent pins mount, then measure and align underneath the curtain.
+      markReady();
+      cancelRefresh = requestScrollRefresh(() => {
+        if (disposed) return;
+        if (hash) scrollToTarget(hash, undefined, { immediate: true });
+        if (phaseRef.current === "cover") changePhase("reveal");
+        else if (!document.documentElement.classList.contains("menu-open")) engine.lenis?.start();
+      });
+    });
+    return () => {
+      disposed = true;
+      window.cancelAnimationFrame(frame);
+      cancelRefresh();
+    };
+  }, [pathname, changePhase]);
 
   const animate = phase === "cover" ? "cover" : phase === "reveal" ? "reveal" : "hidden";
 
   return (
     <>
       {children}
-      <div aria-hidden="true" className={`fixed inset-0 z-[150] ${phase === "idle" ? "pointer-events-none" : ""}`}>
+      {phase !== "idle" && <div aria-hidden="true" className="fixed inset-0 z-[150]">
         <div className="absolute inset-0 flex">
           {Array.from({ length: COLS }).map((_, i) => (
             <motion.div
@@ -144,7 +163,7 @@ export function PageTransition({ children }: { children: ReactNode }) {
               onAnimationComplete={(def) => {
                 if (i !== COLS - 1) return;
                 if (def === "cover") onCovered();
-                if (def === "reveal") setPhase("idle");
+                if (def === "reveal") finishReveal();
               }}
               className="-mr-px h-full flex-1 bg-ember will-change-transform"
             />
@@ -153,7 +172,7 @@ export function PageTransition({ children }: { children: ReactNode }) {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: phase === "cover" ? 1 : 0, y: phase === "cover" ? 0 : -24 }}
-          transition={{ duration: 0.45, delay: phase === "cover" ? 0.4 : 0 }}
+          transition={{ duration: 0.5, delay: phase === "cover" ? 0.2 : 0 }}
           className="absolute inset-0 grid place-items-center text-on-accent"
         >
           <div className="flex flex-col items-center gap-5">
@@ -161,7 +180,7 @@ export function PageTransition({ children }: { children: ReactNode }) {
             <span className="font-display text-5xl font-semibold tracking-tight md:text-7xl">{label}</span>
           </div>
         </motion.div>
-      </div>
+      </div>}
     </>
   );
 }

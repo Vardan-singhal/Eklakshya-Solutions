@@ -1,8 +1,9 @@
 "use client";
 
 import { useRef } from "react";
+import { SCROLL_MOTION } from "@/lib/motionSettings";
 import { gsap, ScrollTrigger } from "@/lib/gsap";
-import { isReducedMotion, useIsoLayoutEffect } from "@/lib/engine";
+import { isReducedMotion, observeEntrance, useIsoLayoutEffect } from "@/lib/engine";
 
 type Step = { step?: string; year?: string; title: string; text: string; out?: string };
 
@@ -23,30 +24,39 @@ export function Timeline({ steps }: { steps: Step[] }) {
       return;
     }
     const triggers: ScrollTrigger[] = [];
-    const isMobile = window.innerWidth < 768;
-    const ctx = gsap.context(() => {
-      gsap.fromTo(line.current, { scaleY: 0 }, { scaleY: 1, ease: "none", scrollTrigger: { trigger: el, start: "top 70%", end: "bottom 65%", scrub: true } });
-      el.querySelectorAll<HTMLElement>("[data-step]").forEach((s, i) => {
-        const dir = i % 2 === 0 ? -1 : 1;
-        const dot = s.querySelector<HTMLElement>("[data-step-dot]");
-        const initialVars = isMobile ? { opacity: 0, y: 32 } : { opacity: 0, x: 60 * dir };
-        const targetVars = isMobile ? { opacity: 1, y: 0 } : { opacity: 1, x: 0 };
-        gsap.fromTo(
-          s.querySelector("[data-step-body]"),
-          initialVars,
-          { ...targetVars, duration: 1.1, ease: "expo.out", scrollTrigger: { trigger: s, start: "top 80%", toggleActions: "play none none reverse" } }
-        );
-        triggers.push(
-          ScrollTrigger.create({
-            trigger: s,
-            start: "top 70%",
-            onEnter: () => dot && (dot.dataset.lit = "1"),
-            onLeaveBack: () => dot && (dot.dataset.lit = "0"),
-          })
-        );
+    const media = gsap.matchMedia();
+    let off = () => {};
+    const ctx = gsap.context((self) => {
+      const prepare = self.add("prepare", () => {
+        media.add({ mobile: "(max-width: 767px)", desktop: "(min-width: 768px)" }, (context) => {
+          const isMobile = context.conditions?.mobile;
+          gsap.fromTo(line.current, { scaleY: 0 }, { scaleY: 1, ease: "none", scrollTrigger: { trigger: el, start: "top 70%", end: "bottom 65%", scrub: SCROLL_MOTION.scrub } });
+          el.querySelectorAll<HTMLElement>("[data-step]").forEach((s, i) => {
+            const dir = i % 2 === 0 ? -1 : 1;
+            const dot = s.querySelector<HTMLElement>("[data-step-dot]");
+            const initialVars = isMobile ? { opacity: 0, y: 32 } : { opacity: 0, x: 60 * dir };
+            const targetVars = isMobile ? { opacity: 1, y: 0 } : { opacity: 1, x: 0 };
+            gsap.fromTo(
+              s.querySelector("[data-step-body]"),
+              initialVars,
+              { ...targetVars, duration: SCROLL_MOTION.revealDuration, delay: SCROLL_MOTION.revealDelay, ease: "power2.out", scrollTrigger: { trigger: s, start: "top 80%", toggleActions: "play none none reverse" } }
+            );
+            triggers.push(
+              ScrollTrigger.create({
+                trigger: s,
+                start: "top 70%",
+                onEnter: () => dot && (dot.dataset.lit = "1"),
+                onLeaveBack: () => dot && (dot.dataset.lit = "0"),
+              })
+            );
+          });
+        });
       });
+      off = observeEntrance(el, () => prepare(), "top 120%");
     }, el);
     return () => {
+      off();
+      media.revert();
       triggers.forEach((t) => t.kill());
       ctx.revert();
     };

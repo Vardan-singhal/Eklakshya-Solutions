@@ -1,8 +1,10 @@
 "use client";
 
 import { Fragment, useRef, type ElementType } from "react";
-import { gsap, ScrollTrigger } from "@/lib/gsap";
-import { isReducedMotion, onReady, useIsoLayoutEffect } from "@/lib/engine";
+import { SCROLL_MOTION } from "@/lib/motionSettings";
+import { gsap } from "@/lib/gsap";
+import { isReducedMotion, observeReadyEntrance, onReady, useIsoLayoutEffect } from "@/lib/engine";
+import { cn } from "@/lib/utils";
 
 type Props = {
   text: string;
@@ -67,23 +69,26 @@ export function SplitText({
     const targets = el.querySelectorAll("[data-split]");
     let off = () => {};
 
-    const ctx = gsap.context(() => {
+    const ctx = gsap.context((self) => {
       if (isReducedMotion()) {
-        gsap.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.6, scrollTrigger: { trigger: el, start, once: true } });
+        const fade = self.add("fade", () => gsap.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.6 }));
+        off = mode === "load" ? onReady(() => fade()) : observeReadyEntrance(el, () => fade(), start);
         return;
       }
-      gsap.set(targets, { yPercent: 118, rotate: 5, transformOrigin: "0% 100%" });
-      const play = () =>
-        gsap.to(targets, {
+      const from = { yPercent: 118, rotate: 5, transformOrigin: "0% 100%" };
+      const play = self.add("play", () =>
+        gsap.fromTo(targets, from, {
           yPercent: 0,
           rotate: 0,
-          duration: 1.15,
-          delay,
-          ease: "expo.out",
-          stagger: stagger ?? (by === "chars" ? 0.025 : 0.07),
-        });
-      if (mode === "load") off = onReady(play);
-      else ScrollTrigger.create({ trigger: el, start, once: true, onEnter: play });
+          duration: mode === "load" ? 0.8 : SCROLL_MOTION.headingDuration,
+          delay: delay + (mode === "scroll" ? SCROLL_MOTION.revealDelay : 0),
+          ease: mode === "load" ? "expo.out" : "power2.out",
+          stagger: stagger ?? (by === "chars" ? 0.03 : mode === "load" ? 0.07 : SCROLL_MOTION.wordStagger),
+        }));
+      if (mode === "load") {
+        gsap.set(targets, from);
+        off = onReady(() => play());
+      } else off = observeReadyEntrance(el, () => play(), start);
     }, el);
 
     return () => {
@@ -93,7 +98,7 @@ export function SplitText({
   }, []);
 
   return (
-    <Tag ref={ref} id={id} className={className}>
+    <Tag ref={ref} id={id} className={cn(className)}>
       {lines.map((words, li) => (
         <Fragment key={li}>
           {words.map((w, wi) => (
@@ -101,12 +106,12 @@ export function SplitText({
               <span className="mr-[0.13em] inline-block overflow-hidden align-bottom" style={{ paddingBottom: "0.16em", marginBottom: "-0.16em" }}>
                 {by === "chars" ? (
                   w.w.split("").map((c, ci) => (
-                    <span key={ci} data-split className={`inline-block will-change-transform ${w.hl ? "text-gradient" : ""}`}>
+                    <span key={ci} data-split className={cn("inline-block", w.hl && "text-gradient")}>
                       {c}
                     </span>
                   ))
                 ) : (
-                  <span data-split className={`inline-block will-change-transform ${w.hl ? "text-gradient" : ""}`}>
+                  <span data-split className={cn("inline-block", w.hl && "text-gradient")}>
                     {w.w}
                   </span>
                 )}

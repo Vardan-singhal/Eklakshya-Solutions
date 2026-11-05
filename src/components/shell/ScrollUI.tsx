@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { gsap, ScrollTrigger } from "@/lib/gsap";
-import { scrollToTarget } from "@/lib/engine";
+import { onReady, scrollToTarget } from "@/lib/engine";
 
 void gsap;
 
@@ -16,9 +16,8 @@ export function ScrollProgress() {
     const st = ScrollTrigger.create({
       start: 0,
       end: "max",
-      onUpdate: (self) => {
-        el.style.transform = `scaleX(${self.progress})`;
-      },
+      onUpdate: (self) => { el.style.transform = `scaleX(${self.progress})`; },
+      onRefresh: (self) => { el.style.transform = `scaleX(${self.progress})`; },
     });
     return () => st.kill();
   }, []);
@@ -42,14 +41,18 @@ export function SectionDots() {
   useEffect(() => {
     const main = document.querySelector("main");
     if (!main) return;
-    const st = ScrollTrigger.create({ trigger: main, start: "bottom bottom+=260", onEnter: () => setHidden(true), onLeaveBack: () => setHidden(false) });
+    const st = ScrollTrigger.create({
+      trigger: main, start: "bottom bottom+=260",
+      onEnter: () => setHidden(true), onLeaveBack: () => setHidden(false),
+      onRefresh: (self) => setHidden(window.scrollY >= self.start),
+    });
     return () => st.kill();
   }, [pathname]);
 
   useEffect(() => {
     let triggers: ScrollTrigger[] = [];
-    const t = window.setTimeout(() => {
-      const nodes = Array.from(document.querySelectorAll<HTMLElement>("[data-section]"));
+    const offReady = onReady(() => {
+      const nodes = Array.from(document.querySelectorAll<HTMLElement>("[data-section][id]")).filter((node) => node.id && node.dataset.section);
       setItems(nodes.map((n) => ({ id: n.id, label: n.dataset.section ?? "" })));
       setActive(0);
       triggers = nodes.map((n, i) =>
@@ -62,11 +65,10 @@ export function SectionDots() {
           },
         })
       );
-    }, 1400);
+    });
     return () => {
-      window.clearTimeout(t);
+      offReady();
       triggers.forEach((s) => s.kill());
-      setItems([]);
     };
   }, [pathname]);
 

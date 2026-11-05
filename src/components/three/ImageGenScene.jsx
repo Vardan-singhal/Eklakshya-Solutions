@@ -1,5 +1,10 @@
 "use client";
 
+import { ScenePreparation } from "./ScenePreparation";
+import { servicePixelRatio } from "./useGraphics";
+import { SceneCompilation } from "./SceneCompilation";
+import { SceneWarmup } from "./SceneWarmup";
+
 /** 3D scene adapted from image three.js/src/components/ImageGenScene.jsx.
  * Procedural artwork stays within the model; preview UI and inquiry modal are excluded. */
 /* ------------------------------------------------------------------------------------------------
@@ -1070,9 +1075,7 @@ function paintBatchAtlas(canvas, gold) {
 
 /* --- Build every texture once ------------------------------------------------------------------ */
 
-function useSceneAssets(gold) {
-  const assets = useMemo(() => {
-    const made = [];
+function* buildSceneAssets(gold, made) {
     const texture = (canvas, opts) => {
       const t = toTexture(canvas, opts);
       made.push(t);
@@ -1083,6 +1086,7 @@ function useSceneAssets(gold) {
     const photoCanvas = makeCanvas(512, 640);
     paintReferencePhoto(photoCanvas, gold);
     const photoTexture = texture(photoCanvas);
+    yield;
 
     // Checkerboard for transparency
     const checkerCanvas = makeCanvas(128, 128);
@@ -1107,13 +1111,14 @@ function useSceneAssets(gold) {
     const boxCanvas = makeCanvas(512, 512);
     paintBoxPrint(boxCanvas, gold);
     const boxTexture = texture(boxCanvas);
+    yield;
 
     // Environments
     const backdrops = [];
     const floors = [];
     const cards = [];
     const cardProducts = ["bottle", "box", "bearing"];
-    ENVIRONMENTS.forEach((env, i) => {
+    for (const [i, env] of ENVIRONMENTS.entries()) {
       const bCanvas = makeCanvas(512, 384);
       paintBackdrop(bCanvas, env, gold);
       backdrops.push(texture(bCanvas));
@@ -1125,22 +1130,25 @@ function useSceneAssets(gold) {
       const cCanvas = makeCanvas(320, 200);
       paintEnvCard(cCanvas, env, cardProducts[i % 3], gold, i);
       cards.push(texture(cCanvas));
-    });
+      yield;
+    }
 
     // Batch atlas
     const atlasCanvas = makeCanvas(1536, 1024);
     paintBatchAtlas(atlasCanvas, gold);
     const atlasTexture = texture(atlasCanvas);
+    yield;
 
     // Export stills, also used by the before / after wipe.
     const shots = {};
     const shotCanvases = {};
-    PRODUCTS.forEach((p, i) => {
+    for (const [i, p] of PRODUCTS.entries()) {
       const canvas = makeCanvas(512, 640);
       paintShot(canvas, p, i === 0 ? 3 : i === 1 ? 0 : 9, gold);
       shotCanvases[p] = canvas;
       shots[p] = texture(canvas);
-    });
+      yield;
+    }
 
 
     // Contact shadow
@@ -1171,16 +1179,55 @@ function useSceneAssets(gold) {
       backdrops, floors, cards, atlasTexture,
       shots, shadowTexture, pixelTexture, all: made,
     };
+}
+
+/** Paint identical artwork in small tasks so input can run between textures. */
+function useSceneAssets(gold) {
+  const [prepared, setPrepared] = useState(null);
+  const owned = useRef(new Set());
+  useEffect(() => {
+    const made = [];
+    const steps = buildSceneAssets(gold, made);
+    let disposed = false;
+    let published = false;
+    let timer;
+    const step = () => {
+      if (disposed) return;
+      try {
+        const next = steps.next();
+        if (next.done) {
+          published = true;
+          made.forEach((texture) => owned.current.add(texture));
+          setPrepared({ gold, assets: next.value });
+        }
+        else timer = window.setTimeout(step, 0);
+      } catch (error) {
+        setPrepared({ gold, error });
+      }
+    };
+    timer = window.setTimeout(step, 0);
+    return () => {
+      disposed = true;
+      window.clearTimeout(timer);
+      steps.return();
+      if (!published) made.forEach((t) => t.dispose());
+    };
   }, [gold]);
 
-  // Dispose every generated texture when the scene unmounts.
   useEffect(() => {
-    return () => {
-      assets.all.forEach((t) => t.dispose());
-    };
-  }, [assets]);
+    const textures = owned.current;
+    return () => prepared?.assets?.all.forEach((texture) => {
+      if (textures.delete(texture)) texture.dispose();
+    });
+  }, [prepared]);
+  useEffect(() => {
+    const textures = owned.current;
+    return () => { textures.forEach((texture) => texture.dispose()); textures.clear(); };
+  }, []);
 
-  return assets;
+  if (prepared?.error && prepared.gold === gold) throw prepared.error;
+  // Retain the current canvas and textures while a theme's artwork is prepared.
+  return prepared?.assets ?? null;
 }
 
 function paintLabel(ctx, w, h, gold) {
@@ -2825,7 +2872,7 @@ const getReducedSnapshot = () => window.matchMedia('(prefers-reduced-motion: red
 const getServerSnapshot = () => true;
 const ignoreHover = () => {};
 
-export default function ImageGenScene({ light = false }) {
+export default function ImageGenScene({ light = false, renderActive = true }) {
   const [state, dispatch] = useReducer(sceneReducer, initialState);
   const coarse = useSyncExternalStore(subscribePreferences, getCoarseSnapshot, getServerSnapshot);
   const reduced = useSyncExternalStore(subscribePreferences, getReducedSnapshot, getServerSnapshot);
@@ -2833,23 +2880,34 @@ export default function ImageGenScene({ light = false }) {
   const gold = light ? '#b87d14' : '#f5c451';
   const cyan = light ? '#0077b6' : '#6cc7e8';
   const assets = useSceneAssets(gold);
+  const hadAssets = useRef(false);
 
   useLayoutEffect(() => { startedAtRef.current = performance.now(); }, [state.stage]);
+  useLayoutEffect(() => {
+    if (assets && !hadAssets.current) {
+      hadAssets.current = true;
+      startedAtRef.current = performance.now();
+    }
+  }, [assets]);
   useEffect(() => {
+    if (!assets || !renderActive) return;
     if (!state.playing || reduced) return;
     const id = window.setTimeout(() => dispatch({ type: 'advance' }), STAGE_MS);
     return () => window.clearTimeout(id);
-  }, [state.stage, state.playing, reduced]);
+  }, [state.stage, state.playing, reduced, renderActive, assets]);
 
   useEffect(() => {
+    if (!assets || !renderActive) return;
     if (!state.playing || reduced || ![2, 3, 5].includes(state.stage)) return;
     const type = state.stage === 2 ? 'cycleEnvironment' : state.stage === 3 ? 'cycleRig' : 'cycleResolution';
     const id = window.setInterval(() => dispatch({ type }), 1400);
     return () => window.clearInterval(id);
-  }, [state.stage, state.playing, reduced]);
+  }, [state.stage, state.playing, reduced, renderActive, assets]);
 
   const selectEnvironment = useCallback((index) => dispatch({ type: 'environment', index }), []);
   const pause = useCallback(() => dispatch({ type: 'pause' }), []);
+
+  if (!assets) return null;
 
   return (
     <div
@@ -2875,24 +2933,31 @@ export default function ImageGenScene({ light = false }) {
         }
       }}
     >
-      <Canvas
-        dpr={[1, 1.5]}
-        gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }}
-        camera={{ position: [0.35, 1.86, 9.2], fov: 34, near: 0.1, far: 60 }}
-        flat
-        style={{ position: 'absolute', inset: 0, background: 'transparent', touchAction: coarse ? 'pan-y' : 'none' }}
-        resize={{ scroll: false, debounce: { scroll: 50, resize: 80 } }}
-      >
-        <React.Suspense fallback={null}>
-          <StudioScene
-            stage={state.stage} envIndex={state.envIndex} rigIndex={state.rigIndex}
-            product={state.product} resolution={state.resolution} assets={assets}
-            gold={gold} cyan={cyan} enableRotate={!coarse} startedAtRef={startedAtRef}
-            onEnvHover={ignoreHover} onEnvHoverEnd={ignoreHover} onEnvSelect={selectEnvironment}
-            onThumbHover={ignoreHover} onThumbHoverEnd={ignoreHover} onInteract={pause}
-          />
-        </React.Suspense>
-      </Canvas>
+      <ScenePreparation name="image">
+        {(onPrepared) => (
+          <Canvas
+            frameloop={renderActive ? "always" : "demand"}
+            dpr={servicePixelRatio(renderActive)}
+            gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }}
+            camera={{ position: [0.35, 1.86, 9.2], fov: 34, near: 0.1, far: 60 }}
+            flat
+            style={{ position: 'absolute', inset: 0, background: 'transparent', touchAction: coarse ? 'pan-y' : 'none' }}
+            resize={{ scroll: false, debounce: { scroll: 50, resize: 80 } }}
+          >
+            <React.Suspense fallback={null}>
+              <StudioScene
+                stage={state.stage} envIndex={state.envIndex} rigIndex={state.rigIndex}
+                product={state.product} resolution={state.resolution} assets={assets}
+                gold={gold} cyan={cyan} enableRotate={!coarse} startedAtRef={startedAtRef}
+                onEnvHover={ignoreHover} onEnvHoverEnd={ignoreHover} onEnvSelect={selectEnvironment}
+                onThumbHover={ignoreHover} onThumbHoverEnd={ignoreHover} onInteract={pause}
+              />
+            </React.Suspense>
+            <SceneCompilation />
+            <SceneWarmup onRendered={onPrepared} />
+          </Canvas>
+        )}
+      </ScenePreparation>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { cn } from "@/lib/utils";
 
 /** Supplied artwork, with its black matte keyed out at render time. */
 function BrandArtwork({ size = 40, className = "", wordmark = false }: { size?: number; className?: string; wordmark?: boolean }) {
@@ -10,7 +11,7 @@ function BrandArtwork({ size = 40, className = "", wordmark = false }: { size?: 
           <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  1 1 1 0 -0.08" />
         </filter>
       </defs>
-      <image href={wordmark ? "/brand/full-logo.png" : "/brand/logo.png"} width={wordmark ? 1536 : 1254} height={wordmark ? 1024 : 1254} filter={`url(#${id})`} />
+      <image href={wordmark ? "/brand/full-logo.webp" : "/brand/logo.webp"} width={wordmark ? 1536 : 1254} height={wordmark ? 1024 : 1254} filter={`url(#${id})`} />
     </svg>
   );
 }
@@ -27,7 +28,7 @@ export function BrandWordmark({ size = 40, className = "" }: { size?: number; cl
 /** Small mono eyebrow label with a target dot. */
 export function SectionLabel({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <p className={`t-eyebrow inline-flex items-center gap-2.5 ${className}`}>
+    <p className={cn("t-eyebrow inline-flex items-center gap-2.5", className)}>
       <span aria-hidden className="relative grid h-3.5 w-3.5 place-items-center">
         <span className="absolute inset-0 rounded-full border border-current opacity-60" />
         <span className="h-1 w-1 rounded-full bg-current" />

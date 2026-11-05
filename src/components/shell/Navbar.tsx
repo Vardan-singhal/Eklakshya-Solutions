@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
+import * as motion from "framer-motion/m";
 import { Menu, X } from "lucide-react";
 import { NAV, SITE } from "@/lib/site";
 import { engine } from "@/lib/engine";
@@ -61,6 +62,7 @@ export function Navbar() {
   return (
     <>
       <header
+        data-scroll-header
         className={`fixed inset-x-0 top-0 z-[60] transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
           hidden && !open ? "-translate-y-full" : "translate-y-0"
         } ${scrolled ? "border-b border-line bg-bg/65 py-3 backdrop-blur-xl" : "py-5"}`}

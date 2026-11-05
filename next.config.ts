@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
       "framer-motion",
       "gsap",
       "lenis",
+      "clsx",
+      "tailwind-merge",
     ],
   },
 };

@@ -94,6 +94,8 @@ export function Cursor() {
     };
 
     const tick = () => {
+      if (!shown || document.hidden) return;
+      if (Math.abs(pos.x - rpos.x) < 0.05 && Math.abs(pos.y - rpos.y) < 0.05) return;
       rpos.x += (pos.x - rpos.x) * 0.2;
       rpos.y += (pos.y - rpos.y) * 0.2;
       r.style.transform = `translate3d(${rpos.x}px, ${rpos.y}px, 0)`;

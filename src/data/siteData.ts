@@ -22,142 +22,149 @@ export const SERVICES: ServiceItem[] = [
     id: "web-development",
     kind: "web",
     title: "Web Development",
-    category: "Full-stack web",
-    tagline: "Fast, accessible websites and web apps engineered to convert.",
-    description:
-      "From brand sites to complex portals — React, Next.js, Node and Express on the front, MySQL, PostgreSQL or MongoDB behind it. Clean code, real performance budgets and no template bloat.",
+    category: "DIGITAL EXPERIENCES",
+    tagline: "Digital experiences engineered to grow your business.",
+    description: "We design and develop high-performance websites and web applications that strengthen your online presence, engage your audience, and turn visitors into customers.",
     deliverables: [
-      "Custom responsive UI built mobile-first with Tailwind CSS",
-      "Server-rendered React / Next.js with Lighthouse 90+ targets",
-      "REST or GraphQL APIs with Node.js, Express or PHP",
-      "Admin panel so you can manage content without a developer",
-      "Analytics, schema markup and technical SEO baked in",
+      "Custom-designed, responsive websites tailored to your brand and business goals.",
+      "Modern frontend and scalable backend development with seamless integrations.",
+      "SEO-friendly architecture, optimized performance, and secure functionality."
     ],
-    features: ["Core Web Vitals tuned", "WCAG AA accessible", "Deploy + handover docs"],
-    idealFor: "Startups, manufacturers and small businesses that need a site that actually sells.",
-    delivery: "2 – 4 weeks",
-    from: "₹45,000 / $650",
+    features: [
+      "Custom built",
+      "Scalable",
+      "Performance-driven"
+    ],
+    idealFor: "Startups, MSMEs and established businesses building or improving their online presence.",
+    delivery: "Planned around your scope",
+    from: "Project-based quote"
   },
   {
     id: "app-development",
     kind: "app",
     title: "App Development",
-    category: "iOS & Android",
-    tagline: "Cross-platform apps that feel native and work offline.",
-    description:
-      "React Native apps with offline-first sync, push notifications, secure auth and payments — shipped to the App Store and Google Play with a proper release pipeline.",
+    category: "MOBILE EXPERIENCES",
+    tagline: "Keep your customers connected and your teams moving.",
+    description: "We build mobile apps for customers and field teams. Reliable offline access and connected workflows keep work moving wherever business happens.",
     deliverables: [
-      "iOS and Android builds from one React Native codebase",
-      "Offline-first data sync for patchy factory / field connectivity",
-      "Push notifications, deep links and in-app payments",
-      "Secure login with biometrics and role-based access",
-      "Store listings, review submission and CI/CD releases",
+      "One consistent app experience across iOS and Android.",
+      "Offline access and reliable sync for teams working on the move.",
+      "Secure accounts, payments and notifications that support everyday use."
     ],
-    features: ["60fps interactions", "Camera / barcode / GPS", "Crash + analytics tooling"],
-    idealFor: "Field-service teams, B2B ordering portals and SaaS companion apps.",
-    delivery: "4 – 7 weeks",
-    from: "₹75,000 / $1,100",
+    features: [
+      "Cross-platform",
+      "Connected",
+      "Reliable"
+    ],
+    idealFor: "Businesses serving mobile customers, field teams and on-site operations.",
+    delivery: "Planned around your scope",
+    from: "Project-based quote"
   },
   {
     id: "software-development",
     kind: "software",
     title: "Software Development",
-    category: "Custom systems",
-    tagline: "ERPs, dashboards and automation that replace spreadsheets.",
-    description:
-      "Internal tools and business software shaped around how your team really works — inventory, quoting, dispatch, invoicing and reporting in one reliable system.",
+    category: "BUSINESS SYSTEMS",
+    tagline: "Less manual work. More control over your business.",
+    description: "We build business software around the way your team works. Connected records and automated workflows reduce repetition and make decisions easier.",
     deliverables: [
-      "Workflow analysis and a clear scope before any code",
-      "Inventory / CRM / quotation modules with role-based access",
-      "Excel and CSV import-export with validation",
-      "PDF invoices, labels and barcode generation",
-      "Audit logs, backups and on-prem or cloud hosting",
+      "Inventory, customer and quotation tools shaped around your processes.",
+      "Connected records and reporting that reduce duplicate work and errors.",
+      "Controlled access, dependable backups and a clear handover for your team."
     ],
-    features: ["Data you own", "Offline-tolerant", "Training for your team"],
-    idealFor: "Manufacturing units, distributors and logistics firms.",
-    delivery: "6 – 10 weeks",
-    from: "₹1,20,000 / $1,750",
+    features: [
+      "Process-led",
+      "Connected",
+      "Efficient"
+    ],
+    idealFor: "MSMEs, manufacturers, distributors and teams outgrowing spreadsheets.",
+    delivery: "Planned around your scope",
+    from: "Project-based quote"
   },
   {
     id: "saas-product-development",
     kind: "saas",
     title: "SaaS Product Development",
-    category: "Cloud products",
-    tagline: "From idea to paying customers — without the rewrite later.",
-    description:
-      "Multi-tenant architecture, subscription billing, onboarding and analytics. Built as an MVP you can launch in weeks and grow into without throwing code away.",
+    category: "SAAS PRODUCTS",
+    tagline: "Turn a proven idea into a product customers can rely on.",
+    description: "We develop subscription products that support your first customers and future growth. Clear onboarding, flexible plans and connected billing make the product easier to run.",
     deliverables: [
-      "Auth, teams, roles and invitations",
-      "Stripe / Razorpay subscriptions with webhooks",
-      "Usage metering, plans and customer billing portal",
-      "Transactional email, notifications and audit trail",
-      "Docs, API keys and an upgrade path to scale",
+      "A focused product built around the problem your customers need solved.",
+      "Secure team workspaces with the right access for every user.",
+      "Subscriptions, usage tracking and billing that support recurring revenue."
     ],
-    features: ["Multi-tenant by design", "Observability built in", "Founder-friendly pricing"],
-    idealFor: "Founders and domain experts turning a workflow into software.",
-    delivery: "5 – 8 weeks",
-    from: "₹95,000 / $1,400",
+    features: [
+      "Product-led",
+      "Scalable",
+      "Subscription-ready"
+    ],
+    idealFor: "Founders, entrepreneurs and businesses turning a proven workflow into a product.",
+    delivery: "Planned around your scope",
+    from: "Project-based quote"
   },
   {
     id: "catalogue-design",
     kind: "catalogue",
     title: "Catalogue Design & Generation",
-    category: "Print + digital",
-    tagline: "3D flipbooks and print-ready catalogues generated from your data.",
-    description:
-      "Turn product spreadsheets into beautiful page-turn catalogues for the web and press-ready PDFs for print — with search, SKU filters and a one-tap WhatsApp enquiry basket.",
+    category: "PRODUCT PRESENTATION",
+    tagline: "Make every product easier to discover, understand and enquire about.",
+    description: "We turn product data into digital catalogues and print-ready layouts. Clear specifications and simple enquiry paths help sales teams move conversations forward.",
     deliverables: [
-      "Interactive flipbook viewer with realistic page turns",
-      "300 DPI CMYK print PDFs with bleed and crop marks",
-      "Automated spec-sheet generation from CSV / ERP data",
-      "Shareable link, QR code and WhatsApp enquiry cart",
-      "Easy updates when prices or SKUs change",
+      "Interactive catalogues that make browsing and product enquiries simple.",
+      "Consistent, branded layouts for digital sharing and professional print.",
+      "Data-driven updates that keep product information accurate and current."
     ],
-    features: ["Light on bandwidth", "Mobile-friendly", "Brand-matched design"],
-    idealFor: "Manufacturers, exporters, tile and hardware suppliers.",
-    delivery: "1 – 3 weeks",
-    from: "₹35,000 / $500",
+    features: [
+      "Print + digital",
+      "Data-driven",
+      "Brand-aligned"
+    ],
+    idealFor: "Manufacturers, exporters and suppliers presenting extensive product ranges.",
+    delivery: "Planned around your scope",
+    from: "Project-based quote"
   },
   {
     id: "image-generation",
     kind: "image",
     title: "Image Generation",
-    category: "AI + 3D visuals",
-    tagline: "Studio-grade product visuals without the studio.",
-    description:
-      "Consistent, on-brand product imagery created with fine-tuned image models and 3D rendering — for catalogues, ads, marketplaces and trade-show banners.",
+    category: "PRODUCT VISUALS",
+    tagline: "Present every product with a consistent, considered visual style.",
+    description: "We create product imagery from your reference photos and 3D assets. Coordinated scenes and formats keep your catalogue, store and campaigns visually consistent.",
     deliverables: [
-      "Product shots in 10+ environments from your reference photos",
-      "4K / 8K exports sized for print and web",
-      "Background removal and re-lighting at batch scale",
-      "Social, marketplace and banner variants",
-      "Style guide so every future batch stays consistent",
+      "Product visuals styled around your brand and intended audience.",
+      "Background changes and lighting refinements across complete product ranges.",
+      "High-resolution images prepared for catalogues, marketplaces and campaigns."
     ],
-    features: ["Fast iterations", "Commercial usage rights", "Human art-directed"],
-    idealFor: "D2C brands and exporters who need volume without a photoshoot.",
-    delivery: "1 – 2 weeks",
-    from: "₹25,000 / $350",
+    features: [
+      "On-brand",
+      "Consistent",
+      "Campaign-ready"
+    ],
+    idealFor: "Product brands, retailers and exporters creating imagery across multiple channels.",
+    delivery: "Planned around your scope",
+    from: "Project-based quote"
   },
   {
     id: "seo",
     kind: "seo",
     title: "SEO",
-    category: "Search growth",
-    tagline: "Technical SEO that puts you in front of buyers who are already looking.",
-    description:
-      "Technical audits, Core Web Vitals, schema markup and content structure — plus programmatic pages for catalogues with hundreds of products.",
+    category: "SEARCH VISIBILITY",
+    tagline: "Help the right customers find your business.",
+    description: "We improve the structure, content and technical health of your website. Search-focused pages and clear reporting help you reach relevant audiences and understand progress.",
     deliverables: [
-      "80-point technical audit with a prioritised fix list",
-      "Schema.org markup for products, services and FAQs",
-      "Keyword and competitor gap map for your market",
-      "Programmatic landing pages for large catalogues",
-      "Monthly ranking and enquiry reporting",
+      "Prioritised technical improvements that make your website easier to find and use.",
+      "Content and page structure aligned with the searches your customers make.",
+      "Clear tracking of search visibility, relevant traffic and enquiries."
     ],
-    features: ["White-hat only", "Search Console set-up", "Clear monthly reports"],
-    idealFor: "B2B exporters, regional service firms and SaaS startups.",
-    delivery: "2-week sprint or monthly",
-    from: "₹30,000 / $420",
-  },
+    features: [
+      "Search-focused",
+      "Measurable",
+      "Sustainable"
+    ],
+    idealFor: "B2B companies, service businesses and growing products seeking relevant search traffic.",
+    delivery: "Planned around your scope",
+    from: "Project-based quote"
+  }
 ];
 
 /* ───────────────────────── Projects ───────────────────────── */
@@ -642,9 +649,9 @@ export const TESTIMONIALS = [
 ];
 
 export const STATS = [
-  { value: 48, suffix: "+", label: "Projects shipped" },
-  { value: 7, suffix: " yrs", label: "Full-stack experience" },
-  { value: 99.9, suffix: "%", label: "Typical uptime", decimals: 1 },
+  { value: 20, suffix: "+", label: "Projects shipped" },
+  { value: 3, suffix: "+ yrs", label: "Full-stack experience" },
+  { value: 90, suffix: "%", label: "Typical uptime" },
   { value: 3.4, suffix: "×", label: "Average lead lift", decimals: 1 },
 ];
 

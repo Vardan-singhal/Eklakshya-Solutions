@@ -1,5 +1,10 @@
 "use client";
 
+import { ScenePreparation } from "./ScenePreparation";
+import { servicePixelRatio } from "./useGraphics";
+import { SceneCompilation } from "./SceneCompilation";
+import { SceneWarmup } from "./SceneWarmup";
+
 /** Model-only scene adapted from software three.js/src/SoftwareDevScene.jsx.
  * The existing service card supplies the layout, decoration, and fallback. */
 import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useReducer, useSyncExternalStore } from 'react';
@@ -650,7 +655,7 @@ const getCoarseSnapshot = () => window.matchMedia('(pointer: coarse)').matches;
 const getReducedSnapshot = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const getServerSnapshot = () => true;
 
-export default function SoftwareDevScene({ light = false }) {
+export default function SoftwareDevScene({ light = false, renderActive = true }) {
   const [state, dispatch] = useReducer(sceneReducer, initialState);
   const coarse = useSyncExternalStore(subscribePreferences, getCoarseSnapshot, getServerSnapshot);
   const reduced = useSyncExternalStore(subscribePreferences, getReducedSnapshot, getServerSnapshot);
@@ -660,17 +665,19 @@ export default function SoftwareDevScene({ light = false }) {
   const onSelect = useCallback((id) => dispatch({ type: 'select', id }), []);
 
   useEffect(() => {
+    if (!renderActive) return;
     if (!state.playing || reduced) return;
     const id = window.setInterval(() => dispatch({ type: 'advance' }), 4200);
     return () => window.clearInterval(id);
-  }, [state.playing, reduced]);
+  }, [state.playing, reduced, renderActive]);
 
   useEffect(() => {
+    if (!renderActive) return;
     if (state.stage !== 3 || !state.playing || reduced) return;
     // Show the supplied role-lock animation without importing preview controls.
     const id = window.setInterval(() => dispatch({ type: 'role' }), 1400);
     return () => window.clearInterval(id);
-  }, [state.stage, state.playing, reduced]);
+  }, [state.stage, state.playing, reduced, renderActive]);
 
   return (
     <div
@@ -695,19 +702,26 @@ export default function SoftwareDevScene({ light = false }) {
         }
       }}
     >
-      <Canvas
-        camera={{ position: [0, 0.3, 9.5], fov: 32, near: 0.1, far: 50 }}
-        dpr={[1, 1.5]}
-        gl={{ alpha: true, antialias: true, powerPreference: 'high-performance', toneMapping: THREE.NoToneMapping }}
-        style={{ position: 'absolute', inset: 0, background: 'transparent', touchAction: coarse ? 'pan-y' : 'none' }}
-        onPointerMissed={() => dispatch({ type: 'clear' })}
-      >
-        <SceneContents
-          stage={state.stage} role={state.role} focus={state.focus} hovered={state.hovered}
-          gold={gold} cyan={cyan} enableRotate={!coarse}
-          onHover={onHover} onSelect={onSelect}
-        />
-      </Canvas>
+      <ScenePreparation name="software">
+        {(onPrepared) => (
+          <Canvas
+            frameloop={renderActive ? "always" : "demand"}
+            camera={{ position: [0, 0.3, 9.5], fov: 32, near: 0.1, far: 50 }}
+            dpr={servicePixelRatio(renderActive)}
+            gl={{ alpha: true, antialias: true, powerPreference: 'high-performance', toneMapping: THREE.NoToneMapping }}
+            style={{ position: 'absolute', inset: 0, background: 'transparent', touchAction: coarse ? 'pan-y' : 'none' }}
+            onPointerMissed={() => dispatch({ type: 'clear' })}
+          >
+            <SceneContents
+              stage={state.stage} role={state.role} focus={state.focus} hovered={state.hovered}
+              gold={gold} cyan={cyan} enableRotate={!coarse}
+              onHover={onHover} onSelect={onSelect}
+            />
+            <SceneCompilation />
+            <SceneWarmup onRendered={onPrepared} />
+          </Canvas>
+        )}
+      </ScenePreparation>
     </div>
   );
 }

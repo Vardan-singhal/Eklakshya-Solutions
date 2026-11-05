@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRef } from "react";
 import { Check } from "lucide-react";
+import { SCROLL_MOTION } from "@/lib/motionSettings";
 import { gsap } from "@/lib/gsap";
 import { useIsoLayoutEffect } from "@/lib/engine";
 import type { ServiceItem } from "@/data/siteData";
@@ -28,7 +29,7 @@ export function ServicesStack({ services }: { services: ServiceItem[] }) {
         if (!next) return;
         const inner = card.querySelector("[data-stack-inner]");
         const shade = card.querySelector("[data-stack-shade]");
-        const scrollTrigger = { trigger: next, start: "top bottom", end: "top 18%", scrub: true };
+        const scrollTrigger = { trigger: next, start: "top bottom", end: "top 18%", scrub: SCROLL_MOTION.scrub };
         gsap.to(inner, { scale: 0.92, ease: "none", scrollTrigger });
         gsap.to(shade, { opacity: 0.6, ease: "none", scrollTrigger });
       });
@@ -67,6 +68,7 @@ export function ServicesStack({ services }: { services: ServiceItem[] }) {
                     {s.title}
                   </h3>
                   <p className="t-lead mt-3 sm:mt-4 max-w-xl">{s.tagline}</p>
+                  <p className="t-body mt-3 sm:mt-4 max-w-xl">{s.description}</p>
                   <ul className="mt-6 sm:mt-8 space-y-2.5 sm:space-y-3">
                     {s.deliverables.slice(0, 3).map((d) => (
                       <li key={d} className="flex items-start gap-3 text-sm sm:text-[15px] leading-6 text-fg/90">
@@ -77,13 +79,13 @@ export function ServicesStack({ services }: { services: ServiceItem[] }) {
                   </ul>
                   <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4 pt-6 sm:mt-auto sm:pt-10">
                     <Button href={`/contact?service=${s.id}`} cursor="Quote">
-                      Get a quote
+                      Start your project
                     </Button>
                     <Link href={`/services#${s.id}`} className="link-underline t-label text-fg">
-                      Full details
+                      Explore service <span aria-hidden="true">→</span>
                     </Link>
                     <span className="t-label w-full sm:w-auto sm:ml-auto">
-                      {s.delivery} · from {s.from}
+                      {s.features.join(" · ")}
                     </span>
                   </div>
                 </div>

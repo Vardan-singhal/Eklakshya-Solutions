@@ -5,6 +5,29 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { ArrowUpRight } from "lucide-react";
 import { gsap } from "@/lib/gsap";
 import { isFinePointer, isReducedMotion } from "@/lib/engine";
+import { cn } from "@/lib/utils";
+
+/** High-rate mice need only one geometry read and update per painted frame. */
+function pointerFrames(el: HTMLElement, move: (event: PointerEvent) => void, leave: () => void) {
+  let frame = 0;
+  let latest: PointerEvent;
+  const onMove = (event: PointerEvent) => {
+    latest = event;
+    if (!frame) frame = window.requestAnimationFrame(() => { frame = 0; move(latest); });
+  };
+  const onLeave = () => {
+    window.cancelAnimationFrame(frame);
+    frame = 0;
+    leave();
+  };
+  el.addEventListener("pointermove", onMove, { passive: true });
+  el.addEventListener("pointerleave", onLeave);
+  return () => {
+    window.cancelAnimationFrame(frame);
+    el.removeEventListener("pointermove", onMove);
+    el.removeEventListener("pointerleave", onLeave);
+  };
+}
 
 /** Pulls its child toward the cursor with an elastic settle. */
 export function Magnetic({ children, strength = 0.35, className = "inline-block" }: { children: ReactNode; strength?: number; className?: string }) {
@@ -23,11 +46,11 @@ export function Magnetic({ children, strength = 0.35, className = "inline-block"
       xTo(0);
       yTo(0);
     };
-    el.addEventListener("pointermove", move);
-    el.addEventListener("pointerleave", leave);
+    const stopPointer = pointerFrames(el, move, leave);
     return () => {
-      el.removeEventListener("pointermove", move);
-      el.removeEventListener("pointerleave", leave);
+      stopPointer();
+      xTo.tween.kill();
+      yTo.tween.kill();
       gsap.set(el, { x: 0, y: 0 });
     };
   }, [strength]);
@@ -72,7 +95,12 @@ export function Button({
     outline: "border border-line-strong text-fg hover:border-ember hover:text-accent bg-surface/40 backdrop-blur",
     ghost: "text-fg hover:text-accent",
   };
-  const cls = `group relative inline-flex select-none items-center justify-center gap-3 rounded-full font-mono font-semibold uppercase tracking-[0.14em] transition-colors duration-300 disabled:opacity-60 ${sizes[size]} ${variants[variant]} ${className}`;
+  const cls = cn(
+    "group relative inline-flex select-none items-center justify-center gap-3 rounded-full font-mono font-semibold uppercase tracking-[0.14em] transition-colors duration-300 disabled:opacity-60",
+    sizes[size],
+    variants[variant],
+    className
+  );
 
   const inner = (
     <>
@@ -129,17 +157,17 @@ export function TiltCard({ children, className = "", max = 7, glare = true }: { 
       rx(0);
       ry(0);
     };
-    el.addEventListener("pointermove", move);
-    el.addEventListener("pointerleave", leave);
+    const stopPointer = pointerFrames(el, move, leave);
     return () => {
-      el.removeEventListener("pointermove", move);
-      el.removeEventListener("pointerleave", leave);
+      stopPointer();
+      rx.tween.kill();
+      ry.tween.kill();
       gsap.set(el, { clearProps: "transform" });
     };
   }, [max]);
 
   return (
-    <div ref={ref} className={`group/tilt relative ${className}`}>
+    <div ref={ref} className={cn("group/tilt relative", className)}>
       {children}
       {glare && (
         <div

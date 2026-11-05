@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRef } from "react";
 import { ArrowUpRight } from "lucide-react";
+import { SCROLL_MOTION } from "@/lib/motionSettings";
 import { gsap } from "@/lib/gsap";
 import { useIsoLayoutEffect } from "@/lib/engine";
 import type { ProjectItem } from "@/data/siteData";
@@ -35,14 +36,16 @@ export function ProjectsRail({ projects }: { projects: ProjectItem[] }) {
           start: "top top",
           end: () => `+=${dist()}`,
           pin: true,
-          scrub: true,
+          scrub: SCROLL_MOTION.scrub,
           anticipatePin: 1,
           invalidateOnRefresh: true,
-          onUpdate: (self) => {
-            if (counter.current) counter.current.textContent = String(Math.min(projects.length, Math.floor(self.progress * projects.length) + 1)).padStart(2, "0");
-            if (bar.current) bar.current.style.transform = `scaleX(${self.progress})`;
-          },
         },
+      });
+      // HUD follows the displayed track while its scrub tween settles.
+      tween.eventCallback("onUpdate", () => {
+        const progress = tween.progress();
+        if (counter.current) counter.current.textContent = String(Math.min(projects.length, Math.floor(progress * projects.length) + 1)).padStart(2, "0");
+        if (bar.current) bar.current.style.transform = `scaleX(${progress})`;
       });
       trackEl.querySelectorAll<HTMLElement>("[data-card]").forEach((card) => {
         gsap.fromTo(

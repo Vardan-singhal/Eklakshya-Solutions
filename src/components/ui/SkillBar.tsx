@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { gsap } from "@/lib/gsap";
-import { isReducedMotion, useIsoLayoutEffect } from "@/lib/engine";
+import { isReducedMotion, observeEntrance, useIsoLayoutEffect } from "@/lib/engine";
 
 /** Proficiency bar that fills (transform: scaleX) when scrolled into view. */
 export function SkillBar({ level }: { level: number }) {
@@ -10,10 +10,12 @@ export function SkillBar({ level }: { level: number }) {
   useIsoLayoutEffect(() => {
     const el = bar.current;
     if (!el || isReducedMotion()) return;
-    const ctx = gsap.context(() => {
-      gsap.fromTo(el, { scaleX: 0 }, { scaleX: level / 100, duration: 1.6, ease: "expo.out", scrollTrigger: { trigger: el, start: "top 95%", once: true } });
+    let off = () => {};
+    const ctx = gsap.context((self) => {
+      const play = self.add("play", () => gsap.fromTo(el, { scaleX: 0 }, { scaleX: level / 100, duration: 1.6, ease: "expo.out" }));
+      off = observeEntrance(el, () => play(), "top 95%");
     }, el);
-    return () => ctx.revert();
+    return () => { off(); ctx.revert(); };
   }, [level]);
   return (
     <div className="h-[3px] w-full overflow-hidden rounded-full bg-line" role="img" aria-label={`Proficiency ${level} percent`}>

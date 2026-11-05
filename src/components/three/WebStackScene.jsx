@@ -1,5 +1,10 @@
 "use client";
 
+import { ScenePreparation } from "./ScenePreparation";
+import { servicePixelRatio } from "./useGraphics";
+import { SceneCompilation } from "./SceneCompilation";
+import { SceneWarmup } from "./SceneWarmup";
+
 /** Updated 3D scene from website three.js/src/WebStackScene.jsx.
  * Preview page styling, DOM overlays, and HUD controls stay outside the service card. */
 import { useCallback, useEffect, useMemo, useRef, useReducer, useSyncExternalStore } from 'react';
@@ -1353,7 +1358,7 @@ const getCoarseSnapshot = () => window.matchMedia('(pointer: coarse)').matches;
 const getReducedSnapshot = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const getServerSnapshot = () => true;
 
-export default function WebStackScene({ light = false }) {
+export default function WebStackScene({ light = false, renderActive = true }) {
   const [state, dispatch] = useReducer(sceneReducer, initialState);
   const coarse = useSyncExternalStore(subscribePreferences, getCoarseSnapshot, getServerSnapshot);
   const reduced = useSyncExternalStore(subscribePreferences, getReducedSnapshot, getServerSnapshot);
@@ -1363,10 +1368,11 @@ export default function WebStackScene({ light = false }) {
   const onSelect = useCallback((index) => dispatch({ type: 'select', index }), []);
 
   useEffect(() => {
+    if (!renderActive) return;
     if (state.locked || state.paused || state.expanded || state.hovered !== null || reduced) return;
     const id = window.setInterval(() => dispatch({ type: 'advance' }), CYCLE_MS);
     return () => window.clearInterval(id);
-  }, [state.locked, state.paused, state.expanded, state.hovered, reduced]);
+  }, [state.locked, state.paused, state.expanded, state.hovered, reduced, renderActive]);
 
   return (
     <div
@@ -1392,20 +1398,27 @@ export default function WebStackScene({ light = false }) {
         }
       }}
     >
-      <Canvas
-        flat
-        dpr={[1, 1.5]}
-        camera={{ position: [0, 1.5, 8.2], fov: 38, near: 0.1, far: 60 }}
-        gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
-        style={{ position: 'absolute', inset: 0, background: 'transparent', touchAction: coarse ? 'pan-y' : 'none' }}
-      >
-        <SceneContent
-          gold={gold} cyan={cyan} active={state.active} hovered={state.hovered}
-          expanded={state.expanded || (coarse && state.locked)}
-          onHover={onHover} onSelect={onSelect} canRotate={!coarse}
-          enableParallax={!reduced}
-        />
-      </Canvas>
+      <ScenePreparation name="web">
+        {(onPrepared) => (
+          <Canvas
+            frameloop={renderActive ? "always" : "demand"}
+            flat
+            dpr={servicePixelRatio(renderActive)}
+            camera={{ position: [0, 1.5, 8.2], fov: 38, near: 0.1, far: 60 }}
+            gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+            style={{ position: 'absolute', inset: 0, background: 'transparent', touchAction: coarse ? 'pan-y' : 'none' }}
+          >
+            <SceneContent
+              gold={gold} cyan={cyan} active={state.active} hovered={state.hovered}
+              expanded={state.expanded || (coarse && state.locked)}
+              onHover={onHover} onSelect={onSelect} canRotate={!coarse}
+              enableParallax={!reduced}
+            />
+            <SceneCompilation />
+            <SceneWarmup onRendered={onPrepared} />
+          </Canvas>
+        )}
+      </ScenePreparation>
     </div>
   );
 }

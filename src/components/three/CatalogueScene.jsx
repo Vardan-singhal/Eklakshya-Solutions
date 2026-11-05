@@ -1,5 +1,10 @@
 "use client";
 
+import { ScenePreparation } from "./ScenePreparation";
+import { servicePixelRatio } from "./useGraphics";
+import { SceneCompilation } from "./SceneCompilation";
+import { SceneWarmup } from "./SceneWarmup";
+
 /** 3D scene adapted from catalogue three.js/src/CatalogueScene.jsx.
  * Page artwork is part of the model; preview UI, modals, and audio are excluded. */
 import { useRef, useState, useEffect, useMemo, useCallback, useLayoutEffect, useReducer, useSyncExternalStore } from 'react';
@@ -55,7 +60,13 @@ function useCatalogueAssets(products, gold, cyan) {
         ]);
         window.clearTimeout(fontTimeout);
         if (disposed) return;
-        const canvases = Array.from({ length: 8 }, (_, index) => generatePageCanvas(index, products, { gold, cyan }));
+        const canvases = [];
+        for (let index = 0; index < 8; index++) {
+          // Yield between pages; keep every texture and its resolution unchanged.
+          await new Promise((resolve) => window.setTimeout(resolve, 0));
+          if (disposed) return;
+          canvases.push(generatePageCanvas(index, products, { gold, cyan }));
+        }
         const mirror = (source) => {
           const canvas = document.createElement('canvas');
           canvas.width = source.width;
@@ -997,7 +1008,7 @@ const getReducedSnapshot = () => window.matchMedia('(prefers-reduced-motion: red
 const getServerSnapshot = () => true;
 const ignoreCursor = () => {};
 
-export default function CatalogueScene({ light = false }) {
+export default function CatalogueScene({ light = false, renderActive = true }) {
   const [state, dispatch] = useReducer(sceneReducer, initialState);
   const coarse = useSyncExternalStore(subscribePreferences, getCoarseSnapshot, getServerSnapshot);
   const reduced = useSyncExternalStore(subscribePreferences, getReducedSnapshot, getServerSnapshot);
@@ -1009,17 +1020,19 @@ export default function CatalogueScene({ light = false }) {
   const isPrint = state.stage === 4;
 
   useEffect(() => {
+    if (!renderActive) return;
     if (!ready || !state.playing || reduced) return;
     const id = window.setTimeout(() => dispatch({ type: 'stage', stage: state.stage % STAGE_COUNT + 1 }), 5200);
     return () => window.clearTimeout(id);
-  }, [ready, state.stage, state.playing, reduced]);
+  }, [ready, state.stage, state.playing, reduced, renderActive]);
 
   useEffect(() => {
+    if (!renderActive) return;
     if (!ready || !state.playing || state.stage !== 3 || reduced) return;
     const intro = window.setTimeout(() => dispatch({ type: 'open' }), 1150);
     const curls = window.setInterval(() => dispatch({ type: 'curl' }), 2300);
     return () => { window.clearTimeout(intro); window.clearInterval(curls); };
-  }, [ready, state.stage, state.playing, reduced]);
+  }, [ready, state.stage, state.playing, reduced, renderActive]);
 
   const flip = useCallback((direction) => dispatch({ type: 'flip', direction }), []);
   const pick = useCallback(() => dispatch({ type: 'pause' }), []);
@@ -1049,31 +1062,38 @@ export default function CatalogueScene({ light = false }) {
       }}
     >
       {assets && (
-        <Canvas
-          dpr={[1, 1.5]}
-          camera={{ position: [0, 0.08, 6.5], fov: 40, near: 0.1, far: 40 }}
-          gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.12 }}
-          style={{ position: 'absolute', inset: 0, background: 'transparent', touchAction: coarse ? 'pan-y' : 'none' }}
-        >
-          <ambientLight intensity={light ? 1.7 : 1.5} />
-          <hemisphereLight args={['#ffe9c4', '#120d08', 0.55]} />
-          <directionalLight position={[3.5, 6, 6]} intensity={1.35} color="#fff6ea" />
-          <directionalLight position={[-5, -1.5, -2]} intensity={0.42} color={cyan} />
-          <pointLight position={[0, -2, 3.2]} intensity={0.35} color={gold} />
-          <CameraRig stage={state.stage} isPrint={isPrint} />
-          <DustMotes gold={gold} />
-          {!isPrint && (
-            <Book
-              spread={state.spread} products={INITIAL_PRODUCTS} textures={assets.pages}
-              interactionRef={interactionRef} onFlip={flip} onPick={pick} onCursor={ignoreCursor}
-              onDragging={onDragging} dragging={state.dragging} stage={state.stage}
-              gold={gold} cyan={cyan} enableRotate={!coarse}
-            />
+        <ScenePreparation name="catalogue">
+          {(onPrepared) => (
+            <Canvas
+            frameloop={renderActive ? "always" : "demand"}
+              dpr={servicePixelRatio(renderActive)}
+              camera={{ position: [0, 0.08, 6.5], fov: 40, near: 0.1, far: 40 }}
+              gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.12 }}
+              style={{ position: 'absolute', inset: 0, background: 'transparent', touchAction: coarse ? 'pan-y' : 'none' }}
+            >
+              <ambientLight intensity={light ? 1.7 : 1.5} />
+              <hemisphereLight args={['#ffe9c4', '#120d08', 0.55]} />
+              <directionalLight position={[3.5, 6, 6]} intensity={1.35} color="#fff6ea" />
+              <directionalLight position={[-5, -1.5, -2]} intensity={0.42} color={cyan} />
+              <pointLight position={[0, -2, 3.2]} intensity={0.35} color={gold} />
+              <CameraRig stage={state.stage} isPrint={isPrint} />
+              <DustMotes gold={gold} />
+              {!isPrint && (
+                <Book
+                  spread={state.spread} products={INITIAL_PRODUCTS} textures={assets.pages}
+                  interactionRef={interactionRef} onFlip={flip} onPick={pick} onCursor={ignoreCursor}
+                  onDragging={onDragging} dragging={state.dragging} stage={state.stage}
+                  gold={gold} cyan={cyan} enableRotate={!coarse}
+                />
+              )}
+              {state.stage === 1 && <DataStream texture={assets.csv} gold={gold} cyan={cyan} />}
+              <SpecSheet texture={assets.spec} active={state.stage === 5} gold={gold} cyan={cyan} />
+              <PrintSpread texture={assets.spread} active={isPrint} gold={gold} cyan={cyan} />
+              <SceneCompilation />
+              <SceneWarmup onRendered={onPrepared} />
+            </Canvas>
           )}
-          {state.stage === 1 && <DataStream texture={assets.csv} gold={gold} cyan={cyan} />}
-          <SpecSheet texture={assets.spec} active={state.stage === 5} gold={gold} cyan={cyan} />
-          <PrintSpread texture={assets.spread} active={isPrint} gold={gold} cyan={cyan} />
-        </Canvas>
+        </ScenePreparation>
       )}
     </div>
   );

@@ -1,5 +1,10 @@
 "use client";
 
+import { ScenePreparation } from "./ScenePreparation";
+import { servicePixelRatio } from "./useGraphics";
+import { SceneCompilation } from "./SceneCompilation";
+import { SceneWarmup } from "./SceneWarmup";
+
 /** 3D scene adapted from saas three.js/src/SaasProductScene.jsx.
  * Preview page styling, HUD controls, and HTML labels are excluded. */
 import React, {
@@ -812,14 +817,14 @@ function TenantPod({
     if (packet.current) {
       packet.current.visible = stage >= 1;
       const pp = (time * 0.22 + bobSeed * 0.3) % 1;
-      packet.current.position.copy(connection.curve.getPointAt(pp));
+      connection.curve.getPointAt(pp, packet.current.position);
       const s = 0.7 + Math.sin(time * 5 + bobSeed) * 0.2;
       packet.current.scale.setScalar(s);
     }
     if (packetBack.current) {
       packetBack.current.visible = stage >= 3;
       const pp = (time * 0.18 + 0.4 + bobSeed * 0.2) % 1;
-      packetBack.current.position.copy(connection.curve.getPointAt(1 - pp));
+      connection.curve.getPointAt(1 - pp, packetBack.current.position);
       packetBack.current.scale.setScalar(0.8);
       packetBack.current.material.opacity = 0.55;
     }
@@ -1332,9 +1337,8 @@ function PaymentGateway({ stage, gold, cyan, muted = false }) {
       const show = stage === 2 && !muted && p > 0.1 && p < 0.62;
       coin.current.visible = show;
       coinGlow.current.visible = show;
-      const pos = pathIn.getPointAt(clamp(pay));
-      coin.current.position.copy(pos);
-      coinGlow.current.position.copy(pos);
+      pathIn.getPointAt(clamp(pay), coin.current.position);
+      coinGlow.current.position.copy(coin.current.position);
       coin.current.rotation.x = time * 3;
       coin.current.rotation.y = time * 2;
       coinGlow.current.scale.setScalar(1 + Math.sin(time * 6) * 0.15);
@@ -1343,7 +1347,7 @@ function PaymentGateway({ stage, gold, cyan, muted = false }) {
     if (webhook.current) {
       const show = stage === 2 && !muted && p > 0.56 && p < 0.9;
       webhook.current.visible = show;
-      webhook.current.position.copy(pathBack.getPointAt(clamp(hook)));
+      pathBack.getPointAt(clamp(hook), webhook.current.position);
       webhook.current.scale.setScalar(0.8 + Math.sin(time * 8) * 0.15);
     }
 
@@ -1816,7 +1820,7 @@ const getCoarseSnapshot = () => window.matchMedia('(pointer: coarse)').matches;
 const getReducedSnapshot = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const getServerSnapshot = () => true;
 
-export default function SaasProductScene({ light = false }) {
+export default function SaasProductScene({ light = false, renderActive = true }) {
   const [state, dispatch] = useReducer(sceneReducer, initialState);
   const coarse = useSyncExternalStore(subscribePreferences, getCoarseSnapshot, getServerSnapshot);
   const reduced = useSyncExternalStore(subscribePreferences, getReducedSnapshot, getServerSnapshot);
@@ -1833,10 +1837,11 @@ export default function SaasProductScene({ light = false }) {
   }, [state.stage]);
 
   useEffect(() => {
+    if (!renderActive) return;
     if (!state.playing || reduced) return;
     const id = window.setInterval(() => dispatch({ type: 'advance' }), STAGE_MS);
     return () => window.clearInterval(id);
-  }, [state.playing, reduced]);
+  }, [state.playing, reduced, renderActive]);
 
   const openTenant = useCallback((id) => dispatch({ type: 'tenant', id }), []);
   const selectPlan = useCallback((plan) => dispatch({ type: 'plan', plan }), []);
@@ -1864,22 +1869,29 @@ export default function SaasProductScene({ light = false }) {
         }
       }}
     >
-      <Canvas
-        dpr={[1, 1.5]}
-        gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }}
-        camera={{ position: DEFAULT_CAM, fov: 38, near: 0.1, far: 100 }}
-        onPointerMissed={() => dispatch({ type: 'clear' })}
-        style={{ position: 'absolute', inset: 0, background: 'transparent', touchAction: coarse ? 'pan-y' : 'none' }}
-      >
-        <Ticker clockRef={clockRef} stage={state.stage} stageStartRef={stageStartRef} />
-        <TimelineContext.Provider value={clockRef}>
-          <SceneContent
-            stage={state.stage} plan={state.plan} gold={gold} cyan={cyan}
-            focusId={state.focus} setFocus={openTenant} onSelectPlan={selectPlan}
-            onUserInteract={pause} controlsRef={controlsRef} enableRotate={!coarse}
-          />
-        </TimelineContext.Provider>
-      </Canvas>
+      <ScenePreparation name="saas">
+        {(onPrepared) => (
+          <Canvas
+            frameloop={renderActive ? "always" : "demand"}
+            dpr={servicePixelRatio(renderActive)}
+            gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }}
+            camera={{ position: DEFAULT_CAM, fov: 38, near: 0.1, far: 100 }}
+            onPointerMissed={() => dispatch({ type: 'clear' })}
+            style={{ position: 'absolute', inset: 0, background: 'transparent', touchAction: coarse ? 'pan-y' : 'none' }}
+          >
+            <Ticker clockRef={clockRef} stage={state.stage} stageStartRef={stageStartRef} />
+            <TimelineContext.Provider value={clockRef}>
+              <SceneContent
+                stage={state.stage} plan={state.plan} gold={gold} cyan={cyan}
+                focusId={state.focus} setFocus={openTenant} onSelectPlan={selectPlan}
+                onUserInteract={pause} controlsRef={controlsRef} enableRotate={!coarse}
+              />
+            </TimelineContext.Provider>
+            <SceneCompilation />
+            <SceneWarmup onRendered={onPrepared} />
+          </Canvas>
+        )}
+      </ScenePreparation>
     </div>
   );
 }

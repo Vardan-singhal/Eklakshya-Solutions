@@ -59,14 +59,18 @@ export function BackgroundField() {
       observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     }
 
-    const draw = () => {
+    let lastFrame = 0;
+    const draw = (time = 0) => {
+      if (document.hidden || (!reduced && time - lastFrame < 1 / 30)) return;
+      const step = lastFrame ? Math.min((time - lastFrame) * 60, 3) : 1;
+      lastFrame = time;
       ctx2d.clearRect(0, 0, w, h);
       const light = isLight;
       const v = engine.velocity;
       for (const p of ps) {
         if (!reduced) {
-          p.y -= 0.15 + p.z * 0.4 + v * p.z * 0.5;
-          p.x += Math.sin((p.y + p.s) * 0.012) * 0.18 * p.z;
+          p.y -= (0.15 + p.z * 0.4 + v * p.z * 0.5) * step;
+          p.x += Math.sin((p.y + p.s) * 0.012) * 0.18 * p.z * step;
         }
         if (p.y < -12) {
           p.y = h + 12;

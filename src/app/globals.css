@@ -45,13 +45,13 @@
     --c-muted: #5b5446;
     --c-line: rgba(21, 17, 12, 0.12);
     --c-line-strong: rgba(21, 17, 12, 0.28);
-    --c-ember: #b87d14;
-    --c-tint: #0077b6;
+    --c-ember: #91600d;
+    --c-tint: #006ba3;
     --c-accent: #85590b;
     /* readable gold on cream */
     --c-on-accent: #120f0b;
-    --grad-a: #99670f;
-    --grad-b: #d6a434;
+    --grad-a: #e9b949;
+    --grad-b: #ffe5a0;
     --tint-max: 0.2;
     --grain-opacity: 0.1;
     color-scheme: light;
@@ -88,13 +88,13 @@
   --c-muted: #5b5446;
   --c-line: rgba(21, 17, 12, 0.12);
   --c-line-strong: rgba(21, 17, 12, 0.28);
-  --c-ember: #b87d14;
-  --c-tint: #0077b6;
+  --c-ember: #91600d;
+  --c-tint: #006ba3;
   --c-accent: #85590b;
   /* readable gold on cream */
   --c-on-accent: #120f0b;
-  --grad-a: #99670f;
-  --grad-b: #d6a434;
+  --grad-a: #e9b949;
+  --grad-b: #ffe5a0;
   --tint-max: 0.2;
   --grain-opacity: 0.1;
   color-scheme: light;
@@ -103,7 +103,7 @@
 :root {
   --section-y: clamp(3.5rem, 7vw, 8rem);
   /* 56 → 128 */
-  --gutter: clamp(1rem, 4vw, 4rem);
+  --gutter: clamp(1.25rem, 4vw, 4rem);
   --footer-h: 760px;
 }
 
@@ -120,9 +120,9 @@
   --color-accent: var(--c-accent);
   --color-on-accent: var(--c-on-accent);
 
-  --font-display: "Clash Display", "Unbounded", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-sans: "Satoshi", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-display: var(--font-brand-display), "Clash Display", "Unbounded", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: var(--font-brand-sans), "Satoshi", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--font-brand-mono), "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 @theme {
@@ -329,20 +329,20 @@
 /* ── Containers ────────────────────────────────────────────── */
 @layer components {
 
-  /* uniform card: 20px on mobile, 32px on sm, 40px from md up */
+  /* uniform card: 24px on mobile, 32px on sm, 40px from md up */
   .card {
     border-radius: 1.5rem;
     border: 1px solid var(--c-line);
     background: var(--c-surface);
-    padding: 1.25rem;
+    padding: 1.5rem;
   }
 
-  /* large feature panel: 20px → 36px → 48px */
+  /* large feature panel: 24px → 36px → 48px */
   .panel {
     border-radius: 1.5rem;
     border: 1px solid var(--c-line);
     background: var(--c-surface);
-    padding: 1.25rem;
+    padding: 1.5rem;
   }
 
   @media (min-width: 640px) {
@@ -380,7 +380,7 @@
 }
 
 @utility text-gradient {
-  background-image: linear-gradient(110deg, var(--grad-a) 10%, var(--grad-b) 90%);
+  background-image: linear-gradient(110deg, var(--c-accent) 10%, var(--c-ember) 90%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -662,4 +662,13 @@ html {
   .grain {
     display: none;
   }
+}
+/* Anchor targets clear the fixed navigation without changing section layout. */
+:root { --nav-clearance: 5rem; }
+@media (min-width: 640px) { :root { --nav-clearance: 5.25rem; } }
+[id] { scroll-margin-top: calc(max(var(--nav-height, 5rem), var(--nav-clearance)) + var(--section-nav-height, 0px) + 1rem); }
+.grain { contain: strict; will-change: transform; }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-w] { opacity: 1 !important; }
 }

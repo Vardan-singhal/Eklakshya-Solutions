@@ -1,4 +1,5 @@
 import type { ElementType, ReactNode } from "react";
+import { cn } from "@/lib/utils";
 import { SectionLabel } from "./brand";
 import { Reveal } from "./motion";
 import { SplitText } from "./SplitText";
@@ -35,7 +36,7 @@ export function Section({
       data-section={label}
       aria-labelledby={labelledBy}
       aria-label={labelledBy ? undefined : ariaLabel}
-      className={`section-y relative ${alt ? "section-alt" : ""} ${className}`}
+      className={cn("section-y relative", alt && "section-alt", className)}
     >
       <div className="container-x">{children}</div>
     </section>
@@ -58,7 +59,7 @@ export function SectionHeader({
   compact?: boolean;
 }) {
   return (
-    <header className={`grid gap-8 lg:grid-cols-12 lg:items-end ${compact ? "mb-10" : "mb-14 md:mb-20"}`}>
+    <header className={cn("grid gap-8 lg:grid-cols-12 lg:items-end", compact ? "mb-10" : "mb-14 md:mb-20")}>
       <div className="lg:col-span-7">
         <Reveal>
           <SectionLabel>{eyebrow}</SectionLabel>
@@ -76,9 +77,9 @@ export function SectionHeader({
 }
 
 export function Card({ children, className = "", as: Tag = "div" }: { children: ReactNode; className?: string; as?: ElementType }) {
-  return <Tag className={`card ${className}`}>{children}</Tag>;
+  return <Tag className={cn("card", className)}>{children}</Tag>;
 }
 
 export function Panel({ children, className = "", as: Tag = "div" }: { children: ReactNode; className?: string; as?: ElementType }) {
-  return <Tag className={`panel ${className}`}>{children}</Tag>;
+  return <Tag className={cn("panel", className)}>{children}</Tag>;
 }

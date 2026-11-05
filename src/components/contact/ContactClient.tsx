@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import * as motion from "framer-motion/m";
 import { Check, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 import { SITE, whatsappLink } from "@/lib/site";
 import type { ServiceItem } from "@/data/siteData";

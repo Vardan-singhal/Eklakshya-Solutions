@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useMemo, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { SCROLL_MOTION } from "@/lib/motionSettings";
 import { gsap, ScrollTrigger } from "@/lib/gsap";
 import { isReducedMotion, onReady, scrollToTarget, useIsoLayoutEffect } from "@/lib/engine";
 import { SITE } from "@/lib/site";
@@ -185,110 +186,119 @@ export function FlipBook({
     const bookEl = book.current;
     const stageEl = stage.current;
     if (!bookEl || !stageEl) return;
-    const leafEls = leaves.current.filter(Boolean) as HTMLDivElement[];
-    const n = leafEls.length;
-    const shades = leafEls.map((l) => Array.from(l.querySelectorAll<HTMLElement>("[data-shade]")));
-    gsap.set(leafEls, { transformOrigin: "0% 50%" });
+    // Mobile uses the swipe rail; only prepare the 3D book at its visible breakpoint.
+    const viewport = gsap.matchMedia();
+    viewport.add("(min-width: 768px)", () => {
+      const leafEls = leaves.current.filter(Boolean) as HTMLDivElement[];
+      const n = leafEls.length;
+      const shades = leafEls.map((l) => Array.from(l.querySelectorAll<HTMLElement>("[data-shade]")));
+      gsap.set(leafEls, { transformOrigin: "0% 50%" });
 
-    const state = { p: 0 };
-    let st: ScrollTrigger | null = null;
-    let offReady = () => {};
-    let refreshFrame = 0;
+      const state = { p: 0 };
+      let st: ScrollTrigger | null = null;
+      let offReady = () => {};
+      let refreshFrame = 0;
 
-    const render = (p: number) => {
-      leafEls.forEach((leaf, i) => {
-        const lp = gsap.utils.clamp(0, 1, p * n - i);
-        const eased = lp < 0.5 ? 2 * lp * lp : 1 - Math.pow(-2 * lp + 2, 2) / 2;
-        gsap.set(leaf, { rotationY: -180 * eased, z: (lp < 0.5 ? n - i : i) * 0.8 });
-        const o = String(Math.sin(eased * Math.PI) * 0.5);
-        shades[i].forEach((s) => (s.style.opacity = o));
-      });
-      const open = Math.min(1, p * n);
-      const close = Math.max(0, p * n - (n - 1));
-      gsap.set(bookEl, { xPercent: -25 * (1 - open) + 25 * close });
-      if (label.current) {
-        const k = Math.round(p * n);
-        label.current.textContent = k === 0 ? "Front cover" : k === n ? "Back cover" : `Pages ${k * 2}–${k * 2 + 1} of ${n * 2}`;
-      }
-    };
+      const render = (p: number) => {
+        leafEls.forEach((leaf, i) => {
+          const lp = gsap.utils.clamp(0, 1, p * n - i);
+          const eased = lp < 0.5 ? 2 * lp * lp : 1 - Math.pow(-2 * lp + 2, 2) / 2;
+          gsap.set(leaf, { rotationY: -180 * eased, z: (lp < 0.5 ? n - i : i) * 0.8 });
+          const o = String(Math.sin(eased * Math.PI) * 0.5);
+          shades[i].forEach((s) => (s.style.opacity = o));
+        });
+        const open = Math.min(1, p * n);
+        const close = Math.max(0, p * n - (n - 1));
+        gsap.set(bookEl, { xPercent: -25 * (1 - open) + 25 * close });
+        if (label.current) {
+          const k = Math.round(p * n);
+          label.current.textContent = k === 0 ? "Front cover" : k === n ? "Back cover" : `Pages ${k * 2}–${k * 2 + 1} of ${n * 2}`;
+        }
+      };
 
-    const tweenTo = (step: number) => {
-      gsap.to(state, { p: step / n, duration: 1.3, ease: "power2.inOut", overwrite: true, onUpdate: () => render(state.p) });
-    };
+      const tweenTo = (step: number) => {
+        gsap.to(state, { p: step / n, duration: 1.65, ease: "power2.inOut", overwrite: true, onUpdate: () => render(state.p) });
+      };
 
-    api.current.go = (dir) => {
-      const current = Math.round((st ? st.progress : state.p) * n);
-      const next = gsap.utils.clamp(0, n, current + dir);
-      if (st) scrollToTarget(st.start + (st.end - st.start) * (next / n), 0);
-      else tweenTo(next);
-    };
+      api.current.go = (dir) => {
+        const current = Math.round(state.p * n);
+        const next = gsap.utils.clamp(0, n, current + dir);
+        if (st) scrollToTarget(st.start + (st.end - st.start) * (next / n), 0);
+        else tweenTo(next);
+      };
 
-    render(0);
-    const mm = gsap.matchMedia();
+      render(0);
+      const mm = gsap.matchMedia();
 
-    if (isReducedMotion()) {
-      render(0.5 / n);
-    } else if (variant === "inline") {
-      // The hero and project rail insert pin spacing before this preview.
-      // Wait until the page is ready, then bind the page turns to the final layout.
-      offReady = onReady(() => {
-        mm.add("(min-width: 768px)", () => {
+      if (isReducedMotion()) {
+        render(0.5 / n);
+      } else if (variant === "inline") {
+        // The hero and project rail insert pin spacing before this preview.
+        // Wait until the page is ready, then bind the page turns to the final layout.
+        offReady = onReady(() => {
+          mm.add("(min-width: 768px)", () => {
+            const tween = gsap.fromTo(state, { p: 0 }, {
+              p: 1,
+              ease: "none",
+              onUpdate: () => render(state.p),
+              scrollTrigger: {
+                trigger: stageEl,
+                start: "top 78%",
+                end: "bottom 30%",
+                scrub: SCROLL_MOTION.scrub,
+                invalidateOnRefresh: true,
+                onRefresh: (self) => {
+                  state.p = self.progress;
+                  render(state.p);
+                },
+              },
+            });
+            st = tween.scrollTrigger ?? null;
+            refreshFrame = window.requestAnimationFrame(() => ScrollTrigger.refresh());
+            return () => {
+              window.cancelAnimationFrame(refreshFrame);
+              tween.scrollTrigger?.kill();
+              tween.kill();
+              st = null;
+              render(0);
+            };
+          });
+        });
+      } else {
+        mm.add("(min-width: 1024px)", () => {
           const tween = gsap.fromTo(state, { p: 0 }, {
             p: 1,
             ease: "none",
             onUpdate: () => render(state.p),
             scrollTrigger: {
               trigger: stageEl,
-              start: "top 78%",
-              end: "bottom 30%",
-              scrub: true,
+              start: "top top",
+              end: () => `+=${Math.round(window.innerHeight * 0.85 * n)}`,
+              pin: true,
+              scrub: SCROLL_MOTION.scrub,
+              anticipatePin: 1,
               invalidateOnRefresh: true,
-              onRefresh: (self) => {
-                state.p = self.progress;
-                render(state.p);
-              },
+              onRefresh: (self) => { state.p = self.progress; render(state.p); },
             },
           });
           st = tween.scrollTrigger ?? null;
-          refreshFrame = window.requestAnimationFrame(() => ScrollTrigger.refresh());
           return () => {
-            window.cancelAnimationFrame(refreshFrame);
             tween.scrollTrigger?.kill();
             tween.kill();
             st = null;
-            render(0);
           };
         });
-      });
-    } else {
-      mm.add("(min-width: 1024px)", () => {
-        st = ScrollTrigger.create({
-          trigger: stageEl,
-          start: "top top",
-          end: () => `+=${Math.round(window.innerHeight * 0.85 * n)}`,
-          pin: true,
-          scrub: true,
-          anticipatePin: 1,
-          invalidateOnRefresh: true,
-          onUpdate: (self) => {
-            state.p = self.progress;
-            render(self.progress);
-          },
-        });
-        return () => {
-          st?.kill();
-          st = null;
-        };
-      });
-    }
+      }
 
-    return () => {
-      offReady();
-      window.cancelAnimationFrame(refreshFrame);
-      mm.revert();
-      st?.kill();
-      gsap.killTweensOf(state);
-    };
+      return () => {
+        offReady();
+        window.cancelAnimationFrame(refreshFrame);
+        mm.revert();
+        st?.kill();
+        gsap.killTweensOf(state);
+      };
+    });
+    return () => viewport.revert();
   }, [catalogue.id, variant]);
 
   const bookWidth =

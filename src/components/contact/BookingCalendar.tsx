@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import * as motion from "framer-motion/m";
 import { Check } from "lucide-react";
 import { Field } from "@/components/ui/forms";
 import { Button } from "@/components/ui/interactive";

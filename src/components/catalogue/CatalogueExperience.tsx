@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CatalogueItem } from "@/data/siteData";
-import { ScrollTrigger } from "@/lib/gsap";
+import { requestScrollRefresh } from "@/lib/gsap";
 import { scrollToTarget } from "@/lib/engine";
 import { TiltCard } from "@/components/ui/interactive";
 import { Section } from "@/components/ui/layout";
@@ -11,19 +11,23 @@ import { FlipBook } from "./FlipBook";
 /** Catalogue gallery (pick a design) + the scroll-driven flipbook stage. */
 export function CatalogueExperience({ catalogues }: { catalogues: CatalogueItem[] }) {
   const [id, setId] = useState(catalogues[0].id);
+  const selectionChanged = useRef(false);
   const active = catalogues.find((c) => c.id === id) ?? catalogues[0];
 
   const select = (next: string) => {
     if (next === id) {
-      scrollToTarget("#catalogue-stage", 0);
+      scrollToTarget("#catalogue-stage");
       return;
     }
+    selectionChanged.current = true;
     setId(next);
-    window.setTimeout(() => {
-      ScrollTrigger.refresh();
-      scrollToTarget("#catalogue-stage", 0);
-    }, 250);
   };
+
+  useEffect(() => {
+    if (!selectionChanged.current) return;
+    selectionChanged.current = false;
+    return requestScrollRefresh(() => scrollToTarget("#catalogue-stage"));
+  }, [id]);
 
   return (
     <>

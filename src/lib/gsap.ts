@@ -8,3 +8,21 @@ if (typeof window !== "undefined") {
 }
 
 export { gsap, ScrollTrigger };
+
+let refreshFrame = 0;
+const afterRefresh = new Set<() => void>();
+
+/** Share one pin measurement pass across fonts, routes and changing content. */
+export function requestScrollRefresh(after?: () => void) {
+  if (after) afterRefresh.add(after);
+  if (!refreshFrame) {
+    refreshFrame = window.requestAnimationFrame(() => {
+      refreshFrame = 0;
+      ScrollTrigger.refresh();
+      const callbacks = Array.from(afterRefresh);
+      afterRefresh.clear();
+      callbacks.forEach((callback) => callback());
+    });
+  }
+  return () => { if (after) afterRefresh.delete(after); };
+}
