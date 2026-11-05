@@ -4,10 +4,11 @@ import { useRef, useState } from "react";
 import { TargetLogo } from "@/components/ui/brand";
 import { gsap } from "@/lib/gsap";
 import { engine, isReducedMotion, markReady, useIsoLayoutEffect } from "@/lib/engine";
+import { heroReadiness } from "@/lib/heroReadiness";
 
 /**
  * Page-load preloader: every fresh visit and reload gets a visible 0–100 counter.
- * Once the short progress animation and bounded font wait finish, a shutter
+ * Once progress, fonts and the hero's first frame are ready, a shutter
  * splits open. It is server-rendered (covers the page from the first byte) and the
  * real content stays in the DOM underneath for crawlers.
  */
@@ -47,11 +48,13 @@ export function Preloader() {
       html.classList.remove("is-loading");
       engine.lenis?.start();
       markReady();
+      performance.mark("preloader:complete");
       setGone(true);
     };
 
     const exit = () => {
       if (cancelled) return;
+      performance.mark("preloader:exit");
       if (reduced) {
         exitAnimation = gsap.to(el, { opacity: 0, duration: 0.25, onComplete: finish });
         return;
@@ -81,7 +84,10 @@ export function Preloader() {
       gsap.to(state, { v: 90, duration: reduced ? 0 : 0.3, ease: "none", onUpdate: render, onComplete: resolve });
     });
 
-    Promise.all([progress, fonts]).then(() => {
+    // Other routes keep their existing timing. On the homepage, 100% means the
+    // hero has drawn, or its final static fallback has been deliberately selected.
+    const hero = document.querySelector("[data-hero-visual]") ? heroReadiness.wait() : null;
+    Promise.all([progress, fonts, hero?.promise]).then(() => {
       if (cancelled) return;
       gsap.to(state, {
         v: 100,
@@ -94,6 +100,7 @@ export function Preloader() {
 
     return () => {
       cancelled = true;
+      hero?.cancel();
       timers.forEach((timer) => window.clearTimeout(timer));
       gsap.killTweensOf(state);
       exitAnimation?.revert();

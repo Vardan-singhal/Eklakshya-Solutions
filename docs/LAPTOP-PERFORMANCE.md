@@ -12,7 +12,7 @@ The changes preserve section layout, model geometry, materials, texture resoluti
 
 ## Verification
 
-Production builds and ESLint pass. The automated suite has 71 passing tests, including shader-preparation cancellation, covered-card visibility, tab visibility, preparation priority, and warm-up cleanup.
+Production builds and ESLint pass. The automated suite now has 77 passing tests, including hero readiness, shader-preparation cancellation, covered-card visibility, tab visibility, preparation priority, and warm-up cleanup.
 
 Chrome checks covered all eight public landing pages at 1440px in dark theme and 390px in light theme. All rendered without page exceptions or horizontal overflow. Screenshots cover all seven service models; reverse scrolling resumed the first model, and switching to another browser tab left zero models active.
 
@@ -25,3 +25,13 @@ Full-scroll results were mixed: the services route showed fewer long-task stalls
 Local Chrome measurements and screenshots are retained under `.performance/`. These are single-run production-preview measurements on this machine, not a guarantee for every laptop. Rendering initialization still requires CPU/GPU shader compilation; no visual quality reduction was introduced to hide that cost.
 
 The repository already lacks the `/images/` project/studio assets referenced by several pages. Their failed image requests are separate from the rendering changes; no project imagery was replaced.
+
+## Hero and loader handoff
+
+The homepage hero now downloads on capable devices without requiring pointer, wheel, or keyboard input. The initial loader holds its final progress phase until the hero has drawn a nonempty frame and reached the following browser frame. Its existing 100% completion tween, 20ms pause, shutter animation, and text entrances retain their timings. The hero clock pauses after preparation and resumes when the shutter finishes, so the animation does not run ahead behind the loading screen.
+
+Service GPU preparation starts after the loader releases the page, giving the hero priority. Unsupported or reduced-motion devices keep the existing SVG fallback. A six-second readiness deadline, measured from loader setup, selects that fallback if the renderer cannot finish; a late download cannot unexpectedly replace it after the loader closes. Non-hero routes retain the existing short loading sequence.
+
+Chrome checks passed for cold desktop loading without input, an artificially delayed hero chunk, a timed-out chunk, mobile, reduced motion, disabled WebGL, and the services route. In the cold desktop run, the hero's first-frame mark was 4686ms after navigation, shutter exit began at 4808ms, and loading completed at 5160ms. In the delayed-chunk run those marks were 3359ms, 3478ms, and 3830ms. These are local observations, not fixed loading durations.
+
+An instrumented animation check found zero hero draws during the prepared-but-concealed interval, continuous rendering after reveal, and the same hero canvas after forward and reverse scrolling. Raw results and screenshots are in `.performance/hero-loading-results.json`, `.performance/hero-motion-results.json`, and `.performance/hero-loading-desktop.png`.

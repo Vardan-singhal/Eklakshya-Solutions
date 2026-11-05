@@ -24,7 +24,7 @@ function hasWebGL() {
  * reduced-motion, data-saver and no-WebGL browsers get the static SVG fallback.
  * Add ?force3d to the URL to bypass the heuristics when testing.
  */
-export function useCanRender3D(minWidth = 768, onInteraction = false) {
+export function useCanRender3D(minWidth = 768, onInteraction = false, onResolved?: (capable: boolean) => void) {
   const [ok, setOk] = useState(false);
   useEffect(() => {
     const force = new URLSearchParams(window.location.search).has("force3d");
@@ -34,7 +34,7 @@ export function useCanRender3D(minWidth = 768, onInteraction = false) {
     const lowCpu = typeof nav.hardwareConcurrency === "number" && nav.hardwareConcurrency < 4;
     const saveData = !!nav.connection?.saveData;
     const capable = force || (!reduced && !lowMem && !lowCpu && !saveData && window.innerWidth >= minWidth);
-    if (!capable) return;
+    if (!capable) { onResolved?.(false); return; }
     // Keep the animated SVG visible until the interactive renderer is needed.
     const events = ["pointermove", "pointerdown", "keydown", "wheel", "scroll"] as const;
     let frame = 0;
@@ -42,7 +42,11 @@ export function useCanRender3D(minWidth = 768, onInteraction = false) {
     const activate = (event?: Event) => {
       if (event) graphicsInteractionStarted = true;
       removeListeners();
-      frame = requestAnimationFrame(() => setOk(hasWebGL()));
+      frame = requestAnimationFrame(() => {
+        const available = hasWebGL();
+        setOk(available);
+        onResolved?.(available);
+      });
     };
     if (onInteraction && !force && !graphicsInteractionStarted) {
       events.forEach((event) => window.addEventListener(event, activate, { passive: true, once: true }));
@@ -50,7 +54,7 @@ export function useCanRender3D(minWidth = 768, onInteraction = false) {
       activate();
     }
     return () => { removeListeners(); cancelAnimationFrame(frame); };
-  }, [minWidth, onInteraction]);
+  }, [minWidth, onInteraction, onResolved]);
   return ok;
 }
 

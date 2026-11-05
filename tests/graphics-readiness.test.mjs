@@ -149,6 +149,121 @@ test('hero interaction gating remains available independently of service loading
   assert.deepEqual(h.updates, [true]);
 });
 
+test('the hero can start before input and report a final capability decision', () => {
+  const h = graphics();
+  const decisions = [];
+  h.api.useCanRender3D(900, false, value => decisions.push(value));
+  h.effects(); h.flush();
+  assert.deepEqual(decisions, [true]);
+  assert.equal(h.events.size, 0);
+  const mobile = graphics({ width: 390 });
+  mobile.api.useCanRender3D(900, false, value => decisions.push(value));
+  mobile.effects(); mobile.flush();
+  assert.deepEqual(decisions, [true, false]);
+});
+
+function heroLatch() {
+  const timers = new Map();
+  let id = 0;
+  const api = load('../src/lib/heroReadiness.ts', () => { throw new Error('unexpected import'); }, {
+    setTimeout(callback) { timers.set(++id, callback); return id; },
+    clearTimeout(key) { timers.delete(key); },
+  });
+  return { latch: api.createHeroReadiness(), expire() { [...timers.values()].forEach(callback => callback()); }, pending: () => timers.size };
+}
+
+test('loader readiness waits for a rendered hero, including an already rendered hero', async () => {
+  const h = heroLatch();
+  let complete = false;
+  const wait = h.latch.wait();
+  wait.promise.then(() => { complete = true; });
+  h.latch.resolveCapability(true);
+  await Promise.resolve();
+  assert.equal(complete, false);
+  h.latch.rendered();
+  await wait.promise;
+  assert.equal(complete, true);
+  assert.equal(h.pending(), 0);
+  await h.latch.wait().promise;
+  assert.equal(h.pending(), 0);
+});
+
+test('unsupported devices and timed-out renderers choose a stable fallback', async () => {
+  const h = heroLatch();
+  const wait = h.latch.wait();
+  h.latch.resolveCapability(false);
+  await wait.promise;
+  assert.equal(h.latch.getSnapshot(), 'fallback');
+  const slow = heroLatch();
+  const timeout = slow.latch.wait();
+  slow.expire(); await timeout.promise;
+  slow.latch.rendered();
+  assert.equal(slow.latch.getSnapshot(), 'fallback', 'a late GPU result cannot pop in after the loader');
+});
+
+test('cancelled loader waits unsubscribe without abandoning a live hero', async () => {
+  const h = heroLatch();
+  const wait = h.latch.wait();
+  wait.cancel(); await wait.promise;
+  assert.equal(h.pending(), 0);
+  assert.equal(h.latch.getSnapshot(), 'pending');
+  h.latch.rendered();
+  assert.equal(h.latch.getSnapshot(), 'rendered');
+});
+
+test('hero first-frame notification follows a draw and ignores unmounted callbacks', () => {
+  let tick, cleanup;
+  let ready = 0, marks = 0;
+  const frames = new Map();
+  const effects = [];
+  let id = 0;
+  const api = load('../src/components/three/HeroFirstFrame.tsx', name => {
+    if (name === 'react') return { useRef: initial => ({ current: initial }), useEffect: effect => effects.push(effect) };
+    assert.equal(name, '@react-three/fiber');
+    return { useFrame: callback => { tick = callback; } };
+  }, {
+    window: { requestAnimationFrame(callback) { frames.set(++id, callback); return id; }, cancelAnimationFrame: key => frames.delete(key) },
+    performance: { mark: () => marks++ },
+  });
+  api.HeroFirstFrame({ onRendered: () => ready++ });
+  cleanup = effects[0]();
+  tick({ gl: { info: { render: { calls: 0 } } } });
+  assert.equal(frames.size, 0);
+  tick({ gl: { info: { render: { calls: 10 } } } });
+  assert.equal(ready, 0);
+  const notify = [...frames.values()][0];
+  cleanup(); notify();
+  assert.equal(ready, 0);
+  assert.equal(marks, 0);
+  cleanup = effects[0]();
+  tick({ gl: { info: { render: { calls: 10 } } } });
+  [...frames.values()][0]();
+  assert.equal(ready, 1);
+  assert.equal(marks, 1);
+  cleanup();
+});
+
+test('service GPU preparation waits until the hero loader releases the page', () => {
+  let schedule, ready;
+  let idle;
+  let starts = 0;
+  load('../src/components/three/ScenePreparation.tsx', name => {
+    if (name === 'react' || name === 'react/jsx-runtime') return {};
+    if (name === '@/lib/modelPreparationQueue') return { createModelPreparationQueue(callback) { schedule = callback; return {}; } };
+    assert.equal(name, '@/lib/engine');
+    return { onReady(callback) { ready = callback; return () => { ready = null; }; } };
+  }, { window: { requestIdleCallback(callback) { idle = callback; return 1; }, cancelIdleCallback() { idle = null; } } });
+  const cancel = schedule(() => starts++);
+  assert.equal(idle, undefined);
+  ready();
+  assert.equal(starts, 0);
+  idle();
+  assert.equal(starts, 1);
+  cancel();
+  schedule(() => starts++ )();
+  assert.equal(ready, null);
+});
+
 function warmup(frameloop = 'always') {
   let tick;
   let cleanup;

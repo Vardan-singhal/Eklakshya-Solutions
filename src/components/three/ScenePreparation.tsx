@@ -2,14 +2,20 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { createModelPreparationQueue } from "@/lib/modelPreparationQueue";
+import { onReady } from "@/lib/engine";
 
 const preparation = createModelPreparationQueue((run) => {
-  if (typeof window.requestIdleCallback === "function") {
-    const id = window.requestIdleCallback(run, { timeout: 250 });
-    return () => window.cancelIdleCallback(id);
-  }
-  const id = window.requestAnimationFrame(run);
-  return () => window.cancelAnimationFrame(id);
+  let cancelScheduled = () => {};
+  const off = onReady(() => {
+    if (typeof window.requestIdleCallback === "function") {
+      const id = window.requestIdleCallback(run, { timeout: 250 });
+      cancelScheduled = () => window.cancelIdleCallback(id);
+    } else {
+      const id = window.requestAnimationFrame(run);
+      cancelScheduled = () => window.cancelAnimationFrame(id);
+    }
+  });
+  return () => { off(); cancelScheduled(); };
 });
 
 type PreparationProps = { name: string; children: (onPrepared: () => void) => ReactNode };

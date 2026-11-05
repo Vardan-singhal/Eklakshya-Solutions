@@ -1,10 +1,12 @@
 "use client";
 
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, type MutableRefObject } from "react";
+import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
-import { engine } from "@/lib/engine";
+import { engine, onReady } from "@/lib/engine";
+import { SceneCompilation } from "./SceneCompilation";
+import { HeroFirstFrame } from "./HeroFirstFrame";
 
 const EMBER = "#e9b949";
 const TINT = "#39bfff";
@@ -349,17 +351,26 @@ function Scene({ light }: { light: boolean }) {
   );
 }
 
-export default function HeroScene({ active, light }: { active: boolean; light: boolean }) {
+export default function HeroScene({ active, light, onRendered }: { active: boolean; light: boolean; onRendered: () => void }) {
+  const [drawn, setDrawn] = useState(false);
+  const [released, setReleased] = useState(() => engine.ready);
+  useEffect(() => onReady(() => setReleased(true)), []);
+  const firstFrame = useCallback(() => {
+    setDrawn(true);
+    onRendered();
+  }, [onRendered]);
   return (
     <Canvas
       dpr={[1, 1.5]}
       camera={{ position: [0, 0, 9.5], fov: 42, near: 0.1, far: 60 }}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-      frameloop={active ? "always" : "never"}
+      frameloop={active && (!drawn || released) ? "always" : "never"}
       style={{ position: "absolute", inset: 0 }}
     >
       <Suspense fallback={null}>
         <Scene light={light} />
+        <SceneCompilation />
+        <HeroFirstFrame onRendered={firstFrame} />
       </Suspense>
     </Canvas>
   );
