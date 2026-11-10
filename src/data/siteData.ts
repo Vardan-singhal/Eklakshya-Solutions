@@ -16,7 +16,6 @@ export interface ServiceItem {
   features: string[];
   idealFor: string;
   delivery: string;
-  from: string;
 }
 
 export const SERVICES: ServiceItem[] = [
@@ -38,8 +37,7 @@ export const SERVICES: ServiceItem[] = [
       "Performance-driven"
     ],
     idealFor: "Startups, MSMEs and established businesses building or improving their online presence.",
-    delivery: "Planned around your scope",
-    from: "Project-based quote"
+    delivery: "Planned around your scope"
   },
   {
     id: "app-development",
@@ -59,8 +57,7 @@ export const SERVICES: ServiceItem[] = [
       "Reliable"
     ],
     idealFor: "Businesses serving mobile customers, field teams and on-site operations.",
-    delivery: "Planned around your scope",
-    from: "Project-based quote"
+    delivery: "Planned around your scope"
   },
   {
     id: "software-development",
@@ -80,8 +77,7 @@ export const SERVICES: ServiceItem[] = [
       "Efficient"
     ],
     idealFor: "MSMEs, manufacturers, distributors and teams outgrowing spreadsheets.",
-    delivery: "Planned around your scope",
-    from: "Project-based quote"
+    delivery: "Planned around your scope"
   },
   {
     id: "saas-product-development",
@@ -101,8 +97,7 @@ export const SERVICES: ServiceItem[] = [
       "Subscription-ready"
     ],
     idealFor: "Founders, entrepreneurs and businesses turning a proven workflow into a product.",
-    delivery: "Planned around your scope",
-    from: "Project-based quote"
+    delivery: "Planned around your scope"
   },
   {
     id: "catalogue-design",
@@ -122,8 +117,7 @@ export const SERVICES: ServiceItem[] = [
       "Brand-aligned"
     ],
     idealFor: "Manufacturers, exporters and suppliers presenting extensive product ranges.",
-    delivery: "Planned around your scope",
-    from: "Project-based quote"
+    delivery: "Planned around your scope"
   },
   {
     id: "image-generation",
@@ -143,8 +137,7 @@ export const SERVICES: ServiceItem[] = [
       "Campaign-ready"
     ],
     idealFor: "Product brands, retailers and exporters creating imagery across multiple channels.",
-    delivery: "Planned around your scope",
-    from: "Project-based quote"
+    delivery: "Planned around your scope"
   },
   {
     id: "seo",
@@ -164,8 +157,7 @@ export const SERVICES: ServiceItem[] = [
       "Sustainable"
     ],
     idealFor: "B2B companies, service businesses and growing products seeking relevant search traffic.",
-    delivery: "Planned around your scope",
-    from: "Project-based quote"
+    delivery: "Planned around your scope"
   }
 ];
 
@@ -292,7 +284,7 @@ export const PROJECTS: ProjectItem[] = [
     role: "Art direction · Generation",
     summary: "Photoreal 8K renders of turbine components for defence expos — no prototypes required.",
     problem:
-      "Photographing physical prototypes took nine weeks and a large budget per assembly before every expo.",
+      "Photographing physical prototypes took nine weeks per assembly before every expo.",
     solution:
       "A fine-tuned image pipeline plus 3D shader passes that produce accurate metallic finishes and lighting from CAD references, art-directed to match the brand.",
     stack: ["Diffusion models", "Custom LoRA", "Blender", "Three.js"],
@@ -475,7 +467,7 @@ export const BLOG_POSTS: BlogPost[] = [
   },
   {
     slug: "ai-product-imagery-for-exporters",
-    title: "Replacing ₹5 lakh photoshoots with AI product imagery that stays on-brand",
+    title: "AI product imagery that stays on-brand",
     excerpt:
       "How fine-tuned image models and 3D reference passes produce trade-show-ready visuals in days, not weeks — and where human art direction still matters.",
     date: "2025-01-14",
@@ -537,92 +529,6 @@ export const BLOG_POSTS: BlogPost[] = [
   },
 ];
 
-/* ───────────────────────── Pricing ───────────────────────── */
-
-export interface PricingTier {
-  id: string;
-  name: string;
-  badge?: string;
-  priceINR: number;
-  priceUSD: number;
-  advanceINR: number;
-  advanceUSD: number;
-  description: string;
-  features: string[];
-  delivery: string;
-  featured?: boolean;
-  /** primary key in pricing_tiers when loaded from the database */
-  dbId?: number;
-}
-
-export const PRICING_TIERS: PricingTier[] = [
-  {
-    id: "sprint",
-    name: "Precision Sprint",
-    priceINR: 45000,
-    priceUSD: 650,
-    advanceINR: 15000,
-    advanceUSD: 220,
-    description: "A focused, high-converting site or landing system, shipped fast.",
-    features: [
-      "Up to 5 custom-designed pages",
-      "Next.js + Tailwind, mobile-first",
-      "Contact form with database logging",
-      "Technical SEO and schema markup",
-      "Lighthouse 90+ performance target",
-      "14 days of post-launch support",
-    ],
-    delivery: "7 – 10 days",
-  },
-  {
-    id: "engine",
-    name: "One Target Engine",
-    badge: "Most booked",
-    priceINR: 120000,
-    priceUSD: 1750,
-    advanceINR: 35000,
-    advanceUSD: 500,
-    description: "A full custom platform: web app, 3D catalogue or business dashboard.",
-    features: [
-      "Up to 12 pages or a custom web application",
-      "3D flipbook catalogue OR custom dashboard",
-      "Admin panel for content and enquiries",
-      "Razorpay / Stripe payments integrated",
-      "WhatsApp enquiry funnel and analytics",
-      "45 days of priority support",
-    ],
-    delivery: "3 – 4 weeks",
-    featured: true,
-  },
-  {
-    id: "enterprise",
-    name: "Enterprise Architecture",
-    badge: "Full power",
-    priceINR: 240000,
-    priceUSD: 3500,
-    advanceINR: 60000,
-    advanceUSD: 900,
-    description: "SaaS, mobile app or ERP built for scale, with full source ownership.",
-    features: [
-      "SaaS / app / ERP architecture and build",
-      "Multi-tenant data model and role-based access",
-      "Subscription billing with webhooks",
-      "CI/CD, monitoring and automated backups",
-      "Full source code, docs and handover",
-      "90 days of SLA-backed support",
-    ],
-    delivery: "6 – 8 weeks",
-  },
-];
-
-export const FAQ = [
-  { q: "How does the advance work?", a: "The advance locks your start date. It is deducted from the package price and the balance is split across agreed milestones — never all at the end." },
-  { q: "Can I pay in USD or INR?", a: "Yes. Indian clients pay in INR; international clients can pay in USD through Razorpay's international checkout." },
-  { q: "Who owns the code?", a: "You do. On final payment you receive the full source, deployment access and documentation." },
-  { q: "Do you sign NDAs?", a: "Always — happy to sign yours before we discuss anything sensitive." },
-  { q: "What if my project doesn't fit a package?", a: "Choose Custom. We'll scope it in a short call and agree a fixed price with milestones." },
-];
-
 /* ───────────────────────── Misc ───────────────────────── */
 
 export const TESTIMONIALS = [
@@ -642,7 +548,7 @@ export const TESTIMONIALS = [
   },
   {
     quote:
-      "From first call to paying customers in under four months. Clear scope, honest estimates and no surprises — exactly what a founder needs.",
+      "From first call to paying customers in under four months. Clear scope, clear milestones and no surprises — exactly what a founder needs.",
     author: "Karthik Venkataraman",
     role: "Co-founder & CTO",
     company: "Velox Cloud",
@@ -657,7 +563,7 @@ export const STATS = [
 ];
 
 export const PROCESS = [
-  { step: "01", title: "Calibrate", text: "A short call to understand the business target, constraints and what success looks like in numbers.", out: "Scope + fixed quote" },
+  { step: "01", title: "Calibrate", text: "A short call to understand the business target, constraints and what success looks like in numbers.", out: "Scope + milestones" },
   { step: "02", title: "Blueprint", text: "Wireframes, data model and a clickable prototype so you see the product before it is built.", out: "Approved prototype" },
   { step: "03", title: "Build", text: "Weekly demos on a live staging link. Clean, tested code — you can steer at every step.", out: "Working staging site" },
   { step: "04", title: "Launch", text: "Performance, security and SEO checks, deployment, training — then ongoing support.", out: "Live + handover docs" },

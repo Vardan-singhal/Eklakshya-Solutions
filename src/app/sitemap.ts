@@ -5,7 +5,7 @@ import { BLOG_POSTS, PROJECTS } from "@/data/siteData";
 const BUILD_DATE = new Date("2025-04-01");
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const pages = ["", "/services", "/portfolio", "/catalogues", "/about", "/pricing", "/blog", "/contact"].map((p) => ({
+  const pages = ["", "/services", "/portfolio", "/catalogues", "/about", "/blog", "/contact"].map((p) => ({
     url: `${SITE.url}${p}`,
     lastModified: BUILD_DATE,
     changeFrequency: "monthly" as const,

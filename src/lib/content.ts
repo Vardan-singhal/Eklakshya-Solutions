@@ -3,7 +3,7 @@
  * fallback before configuration/seeding or during an outage. Never return BSON to clients.
  */
 import * as bundled from "@/data/siteData";
-import type { BlogPost, CatalogueItem, PricingTier, ProjectItem, ServiceItem, Testimonial } from "@/data/siteData";
+import type { BlogPost, CatalogueItem, ProjectItem, ServiceItem, Testimonial } from "@/data/siteData";
 import type { Database } from "@/db/schema";
 import { hasDatabaseConfiguration, reportServerError } from "./env.server";
 
@@ -23,13 +23,15 @@ export const getServices = () => fromDb<ServiceItem>("services", async (db) =>
   (await db.services.find({ published: true }).sort({ sortOrder: 1 }).toArray()).map((r) => ({
     id: r.slug, kind: r.kind, title: r.title, category: r.category, tagline: r.tagline,
     description: r.description, deliverables: r.deliverables, features: r.features,
-    idealFor: r.idealFor, delivery: r.delivery, from: r.fromPrice,
+    idealFor: r.idealFor, delivery: r.delivery,
   })), bundled.SERVICES);
 
 export const getProjects = () => fromDb<ProjectItem>("projects", async (db) =>
   (await db.projects.find({ published: true }).sort({ sortOrder: 1 }).toArray()).map((r) => ({
     slug: r.slug, title: r.title, client: r.client, category: r.category, year: r.year,
-    role: r.role, summary: r.summary, problem: r.problem, solution: r.solution,
+    role: r.role, summary: r.summary,
+    problem: r.problem.replace("took nine weeks and a large budget per assembly", "took nine weeks per assembly"),
+    solution: r.solution,
     stack: r.stack, cover: r.cover, coverAlt: r.coverAlt,
     results: r.results.map((m) => ({ value: m.value, prefix: m.prefix, suffix: m.suffix, decimals: m.decimals ?? 0, label: m.label })),
   })), bundled.PROJECTS);
@@ -56,24 +58,16 @@ export const getCatalogues = () => fromDb<CatalogueItem>("catalogues", async (db
 
 export const getPosts = () => fromDb<BlogPost>("posts", async (db) =>
   (await db.posts.find({ published: true }).sort({ publishedAt: -1 }).toArray()).map((r) => ({
-    slug: r.slug, title: r.title, excerpt: r.excerpt, date: r.publishedAt.toISOString().slice(0, 10),
+    slug: r.slug,
+    // Retire the original monetary headline in existing seeds without rewriting records.
+    title: r.slug === "ai-product-imagery-for-exporters" && /^Replacing .* photoshoots with AI product imagery/.test(r.title)
+      ? bundled.BLOG_POSTS.find((post) => post.slug === r.slug)!.title : r.title,
+    excerpt: r.excerpt, date: r.publishedAt.toISOString().slice(0, 10),
     readTime: r.readTime, category: r.category, tags: r.tags, cover: r.cover,
     coverAlt: r.coverAlt, sections: r.body,
   })), bundled.BLOG_POSTS);
 
 export const getTestimonials = () => fromDb<Testimonial>("testimonials", async (db) =>
   (await db.testimonials.find({ published: true }).sort({ sortOrder: 1 }).toArray()).map((r) => ({
-    quote: r.quote, author: r.author, role: r.role, company: r.company,
+    quote: r.quote.replace("honest estimates", "clear milestones"), author: r.author, role: r.role, company: r.company,
   })), bundled.TESTIMONIALS);
-
-export const getPricingTiers = () => fromDb<PricingTier>("pricing_tiers", async (db) =>
-  (await db.pricingTiers.find({ published: true }).sort({ sortOrder: 1 }).toArray()).map((r) => ({
-    dbId: r.id, id: r.slug, name: r.name, badge: r.badge, priceINR: r.priceInr,
-    priceUSD: r.priceUsd, advanceINR: r.advanceInr, advanceUSD: r.advanceUsd,
-    description: r.description, features: r.features, delivery: r.delivery, featured: r.featured,
-  })), bundled.PRICING_TIERS);
-
-export const getFaqs = () => fromDb<{ q: string; a: string }>("faqs", async (db) =>
-  (await db.faqs.find({ published: true }).sort({ sortOrder: 1 }).toArray()).map((r) => ({
-    q: r.question, a: r.answer,
-  })), bundled.FAQ);

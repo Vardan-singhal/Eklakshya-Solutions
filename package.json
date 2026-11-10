@@ -7,7 +7,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test tests/server-config.test.mjs tests/theme.test.mjs tests/animation-engine.test.mjs tests/graphics-readiness.test.mjs tests/utils.test.mjs tests/catalogues.test.mjs",
+    "test": "node --import tsx --test tests/server-config.test.mjs tests/theme.test.mjs tests/animation-engine.test.mjs tests/graphics-readiness.test.mjs tests/hero-worker.test.mjs tests/utils.test.mjs tests/catalogues.test.mjs",
     "db:seed": "tsx src/db/seed.ts",
     "db:check": "tsx src/db/check.ts"
   },

@@ -50,7 +50,7 @@ export function Field({
   );
 }
 
-/** Toggle chip used for service / budget pickers. */
+/** Toggle chip used for service pickers. */
 export function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button

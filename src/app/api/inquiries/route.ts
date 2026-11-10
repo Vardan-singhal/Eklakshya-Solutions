@@ -34,7 +34,6 @@ export async function POST(req: Request) {
       email,
       phone: clean(body.phone, 40),
       service: clean(body.service, 200) || "General enquiry",
-      budget: clean(body.budget, 80) || "Not specified",
       message,
       status: "new",
       createdAt: new Date(),

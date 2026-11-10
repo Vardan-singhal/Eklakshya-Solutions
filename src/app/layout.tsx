@@ -28,7 +28,7 @@ const bodyFont = localFont({ src: [
   { path: "./fonts/satoshi-500.woff2", weight: "500" },
   { path: "./fonts/satoshi-700.woff2", weight: "700" },
 ], variable: "--font-brand-sans", display: "swap", preload: true });
-const monoFont = localFont({ src: [{ path: "./fonts/jetbrains-mono-latin.woff2", weight: "400 600" }], variable: "--font-brand-mono", display: "swap", preload: false });
+const monoFont = localFont({ src: [{ path: "./fonts/jetbrains-mono-latin.woff2", weight: "400 600" }], variable: "--font-brand-mono", display: "swap", preload: true });
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),

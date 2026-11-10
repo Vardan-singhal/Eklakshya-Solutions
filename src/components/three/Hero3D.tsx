@@ -1,15 +1,14 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useEffect, useSyncExternalStore } from "react";
 import { heroReadiness } from "@/lib/heroReadiness";
 import { StaticTarget } from "@/components/ui/brand";
 import { useTheme } from "@/components/providers/theme";
 import { Boundary } from "./Boundary";
 import { useCanRender3D, useInView } from "./useGraphics";
+import HeroScene from "./HeroRenderer";
 
-// Lazy-loaded: the three.js bundle only downloads on capable devices.
-const HeroScene = dynamic(() => import("./HeroScene"), { ssr: false });
+// Only the lightweight worker bridge is eager; artwork downloads on capable devices.
 
 function Fallback({ failed = false }: { failed?: boolean }) {
   useEffect(() => { if (failed) heroReadiness.fallback(); }, [failed]);

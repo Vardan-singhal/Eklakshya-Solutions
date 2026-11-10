@@ -29,7 +29,7 @@ export default async function ContactPage() {
       <PageHero
         eyebrow="Contact"
         title={"Let's aim at\n*your target.*"}
-        intro="Share the outcome you need. We'll reply within one working day with questions, a rough plan and a fixed-price proposal."
+        intro="Share the outcome you need. We'll reply within one working day with questions and next steps for your project."
         crumbs={[{ name: "Home", href: "/" }, { name: "Contact", href: "/contact" }]}
       />
       <ContactClient services={services} />

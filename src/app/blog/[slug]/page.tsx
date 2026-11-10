@@ -117,7 +117,7 @@ export default async function BlogPostPage({ params }: Props) {
           <Reveal className="mt-10 sm:mt-14">
             <Card>
               <h2 className="t-h4">Want this built for your business?</h2>
-              <p className="t-body mt-2.5 sm:mt-3">Tell us the outcome you need — we&apos;ll reply with a fixed-price plan.</p>
+              <p className="t-body mt-2.5 sm:mt-3">Tell us the outcome you need — we&apos;ll reply with next steps for your project.</p>
               <div className="mt-6 sm:mt-8">
                 <Button href="/contact" className="w-full sm:w-auto" cursor="Talk">
                   Start a project

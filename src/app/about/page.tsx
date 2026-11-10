@@ -20,7 +20,7 @@ export const metadata = buildMetadata({
 });
 
 const PRINCIPLES = [
-  { icon: Crosshair, t: "Precision", d: "Clear scope, fixed quotes and clean, tested code. We measure twice and ship once." },
+  { icon: Crosshair, t: "Precision", d: "Clear scope and clean, tested code. We measure twice and ship once." },
   { icon: Focus, t: "Focus", d: "One objective per project. Every feature has to earn its place by moving that number." },
   { icon: TrendingUp, t: "Results", d: "Success is enquiries, revenue and hours saved — not screens delivered." },
 ];
@@ -58,7 +58,7 @@ export default function AboutPage() {
             <SplitText as="h2" id="story-title" text={"Software should\n*move numbers.*"} className="t-h2 mt-6" />
             <Reveal stagger={0.12} y={26} className="mt-8 max-w-2xl space-y-5">
               <p className="t-lead">
-                Eklakshya started with a simple frustration: too many projects delivered on time and on budget — and still failed, because nobody agreed what “success” meant.
+                Eklakshya started with a simple frustration: too many projects delivered on time — and still failed, because nobody agreed what “success” meant.
               </p>
               <p className="t-body">
                 So every engagement now begins with one question: what is the single outcome this has to achieve? Then we choose proven tools — React, Node, Express, MongoDB, MySQL, PHP — and add

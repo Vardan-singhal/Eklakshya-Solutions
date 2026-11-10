@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { Check, Clock, Wallet } from "lucide-react";
+import { Check, Clock } from "lucide-react";
 import { SITE } from "@/lib/site";
 import { breadcrumbLd, buildMetadata } from "@/lib/seo";
 import { getServices } from "@/lib/content";
@@ -17,7 +16,7 @@ export const revalidate = 600;
 export const metadata = buildMetadata({
   title: "Services — Web, Apps, SaaS, Catalogues, AI Visuals & SEO",
   description:
-    "Web development, app development, custom software, SaaS products, 3D catalogue design, AI image generation and SEO — delivered by one full-stack studio with fixed quotes.",
+    "Web development, app development, custom software, SaaS products, 3D catalogue design, AI image generation and SEO — delivered by one full-stack studio with a focus on measurable outcomes.",
   path: "/services",
 });
 
@@ -105,18 +104,12 @@ export default async function ServicesPage() {
                 </Reveal>
 
                 <Reveal className="mt-8 sm:mt-10">
-                  <Card className="grid gap-6 sm:grid-cols-3 sm:gap-8">
+                  <Card className="grid gap-6 sm:grid-cols-2 sm:gap-8">
                     <div>
                       <p className="t-label mb-2 flex items-center gap-2">
                         <Clock className="h-3.5 w-3.5" aria-hidden /> Delivery
                       </p>
                       <p className="t-h4">{s.delivery}</p>
-                    </div>
-                    <div>
-                      <p className="t-label mb-2 flex items-center gap-2">
-                        <Wallet className="h-3.5 w-3.5" aria-hidden /> Project quote
-                      </p>
-                      <p className="t-h4">{s.from}</p>
                     </div>
                     <div>
                       <p className="t-label mb-2">Ideal for</p>
@@ -126,12 +119,9 @@ export default async function ServicesPage() {
                 </Reveal>
 
                 <Reveal className="mt-8 sm:mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
-                  <Button href={`/contact?service=${s.id}`} cursor="Quote">
-                    Get a quote
+                  <Button href={`/contact?service=${s.id}`} cursor="Discuss">
+                    Start your project
                   </Button>
-                  <Link href="/pricing" className="link-underline t-label hover:text-fg">
-                    See packages
-                  </Link>
                 </Reveal>
               </div>
 

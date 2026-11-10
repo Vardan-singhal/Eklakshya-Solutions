@@ -35,23 +35,25 @@ export function Magnetic({ children, strength = 0.35, className = "inline-block"
   useEffect(() => {
     const el = ref.current;
     if (!el || !isFinePointer() || isReducedMotion()) return;
-    const xTo = gsap.quickTo(el, "x", { duration: 0.7, ease: "elastic.out(1, 0.45)" });
-    const yTo = gsap.quickTo(el, "y", { duration: 0.7, ease: "elastic.out(1, 0.45)" });
+    let xTo: ReturnType<typeof gsap.quickTo> | undefined;
+    let yTo: ReturnType<typeof gsap.quickTo> | undefined;
     const move = (e: PointerEvent) => {
+      xTo ??= gsap.quickTo(el, "x", { duration: 0.7, ease: "elastic.out(1, 0.45)" });
+      yTo ??= gsap.quickTo(el, "y", { duration: 0.7, ease: "elastic.out(1, 0.45)" });
       const r = el.getBoundingClientRect();
       xTo((e.clientX - (r.left + r.width / 2)) * strength);
       yTo((e.clientY - (r.top + r.height / 2)) * strength);
     };
     const leave = () => {
-      xTo(0);
-      yTo(0);
+      xTo?.(0);
+      yTo?.(0);
     };
     const stopPointer = pointerFrames(el, move, leave);
     return () => {
       stopPointer();
-      xTo.tween.kill();
-      yTo.tween.kill();
-      gsap.set(el, { x: 0, y: 0 });
+      xTo?.tween.kill();
+      yTo?.tween.kill();
+      if (xTo || yTo) gsap.set(el, { x: 0, y: 0 });
     };
   }, [strength]);
   return (
@@ -141,28 +143,32 @@ export function TiltCard({ children, className = "", max = 7, glare = true }: { 
   useEffect(() => {
     const el = ref.current;
     if (!el || !isFinePointer() || isReducedMotion()) return;
-    gsap.set(el, { transformPerspective: 1000 });
-    const rx = gsap.quickTo(el, "rotationX", { duration: 0.6, ease: "power3.out" });
-    const ry = gsap.quickTo(el, "rotationY", { duration: 0.6, ease: "power3.out" });
+    let rx: ReturnType<typeof gsap.quickTo> | undefined;
+    let ry: ReturnType<typeof gsap.quickTo> | undefined;
     const move = (e: PointerEvent) => {
+      if (!rx) {
+        gsap.set(el, { transformPerspective: 1000 });
+        rx = gsap.quickTo(el, "rotationX", { duration: 0.6, ease: "power3.out" });
+        ry = gsap.quickTo(el, "rotationY", { duration: 0.6, ease: "power3.out" });
+      }
       const r = el.getBoundingClientRect();
       const px = (e.clientX - r.left) / r.width;
       const py = (e.clientY - r.top) / r.height;
-      ry((px - 0.5) * max * 2);
+      ry!((px - 0.5) * max * 2);
       rx(-(py - 0.5) * max * 2);
       el.style.setProperty("--mx", `${px * 100}%`);
       el.style.setProperty("--my", `${py * 100}%`);
     };
     const leave = () => {
-      rx(0);
-      ry(0);
+      rx?.(0);
+      ry?.(0);
     };
     const stopPointer = pointerFrames(el, move, leave);
     return () => {
       stopPointer();
-      rx.tween.kill();
-      ry.tween.kill();
-      gsap.set(el, { clearProps: "transform" });
+      rx?.tween.kill();
+      ry?.tween.kill();
+      if (rx || ry) gsap.set(el, { clearProps: "transform" });
     };
   }, [max]);
 

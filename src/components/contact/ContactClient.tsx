@@ -11,7 +11,6 @@ import { Card, Panel, Section } from "@/components/ui/layout";
 import { Reveal } from "@/components/ui/motion";
 import { BookingCalendar } from "./BookingCalendar";
 
-const BUDGETS = ["Under ₹50k", "₹50k – 1.5L", "₹1.5L – 5L", "₹5L+", "Not sure yet"];
 
 /** Form on cols 1–7; WhatsApp, calendar and details stacked on cols 8–12. Same card padding throughout. */
 export function ContactClient({ services }: { services: Pick<ServiceItem, "id" | "title">[] }) {
@@ -19,7 +18,6 @@ export function ContactClient({ services }: { services: Pick<ServiceItem, "id" |
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [picked, setPicked] = useState<string[]>([]);
-  const [budget, setBudget] = useState("");
   const [message, setMessage] = useState("");
   const [trap, setTrap] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "done" | "error">("idle");
@@ -45,7 +43,7 @@ export function ContactClient({ services }: { services: Pick<ServiceItem, "id" |
       const res = await fetch("/api/inquiries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, phone, service: picked.join(", "), budget, message, website: trap }),
+        body: JSON.stringify({ name, email, phone, service: picked.join(", "), message, website: trap }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not send your message.");
@@ -86,17 +84,6 @@ export function ContactClient({ services }: { services: Pick<ServiceItem, "id" |
                     {services.map((s) => (
                       <Chip key={s.id} active={picked.includes(s.title)} onClick={() => toggle(s.title)}>
                         {s.title}
-                      </Chip>
-                    ))}
-                  </div>
-                </fieldset>
-
-                <fieldset>
-                  <legend className="t-label mb-3 sm:mb-4">Budget</legend>
-                  <div className="flex flex-wrap gap-2 sm:gap-2.5">
-                    {BUDGETS.map((b) => (
-                      <Chip key={b} active={budget === b} onClick={() => setBudget(b)}>
-                        {b}
                       </Chip>
                     ))}
                   </div>

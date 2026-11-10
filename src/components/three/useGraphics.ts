@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { observeStackOcclusion } from "@/lib/modelVisibility";
 
 let webglCache: boolean | null = null;
@@ -75,6 +75,25 @@ export function useInView<T extends HTMLElement>(margin = "200px", stackAware = 
     return () => { io.disconnect(); stopOcclusion(); document.removeEventListener("visibilitychange", update); };
   }, [margin, stackAware]);
   return [ref, inView] as const;
+}
+
+/** Prepare a scene ahead of scrolling, then keep its renderer for return visits.
+ * Distant models must not compete with the hero's first draw or initial hydration.
+ */
+export function useSceneProximity(ref: RefObject<HTMLElement | null>) {
+  const [prepare, setPrepare] = useState(false);
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      setPrepare(true);
+      observer.disconnect();
+    }, { rootMargin: "2400px" });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [ref]);
+  return prepare;
 }
 
 /** Hidden warm-up uses fewer pixels; restore normal quality before viewport entry. */

@@ -46,7 +46,7 @@ safe 503 response from database-backed APIs. The website retains its bundled-con
 | `catalogues` | Catalogues with embedded, ordered plates |
 | `posts` | Articles with embedded sections |
 | `testimonials` | Client quotes |
-| `pricing_tiers` | Server-side prices and payment amounts |
+| `pricing_tiers` | Historical service tiers (retained; public checkout retired) |
 | `faqs` | Questions and answers |
 | `inquiries` | Private contact submissions |
 | `bookings` | Private booking/payment state and snapshots |
@@ -69,7 +69,7 @@ npm run db:seed
 The script only fills empty content collections by default. Visitor records are retained.
 `npm run db:seed -- --reset` explicitly clears and reseeds editorial content, retaining
 bookings/inquiries/call requests and ID counters. On reset, booking tier references are
-detached before pricing tiers are replaced; booking names and payment history remain intact.
+preserved with historical tier records; public checkout and tier seeding are retired.
 
 No SQL migration or Drizzle command is needed. The existing `drizzle/` SQL files are retained
 only as historical reference and are not executed by the MongoDB application. This change does

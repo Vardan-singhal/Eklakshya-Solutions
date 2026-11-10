@@ -3,16 +3,19 @@
  * Project results and catalogue plates are embedded in their parent documents.
  */
 import type { Db, IndexDescription } from "mongodb";
-import type { ServiceItem, ProjectItem, CatalogueItem, BlogPost, PricingTier, Testimonial } from "../data/siteData";
+import type { ServiceItem, ProjectItem, CatalogueItem, BlogPost, Testimonial } from "../data/siteData";
 
 type ContentMeta = { id: number; published: boolean; sortOrder: number; createdAt: Date; updatedAt: Date };
-export type ServiceDocument = Omit<ServiceItem, "id" | "from"> & ContentMeta & { slug: string; fromPrice: string };
+export type ServiceDocument = Omit<ServiceItem, "id"> & ContentMeta & { slug: string };
 export type ProjectDocument = ProjectItem & ContentMeta & { featured: boolean };
 export type CatalogueDocument = Omit<CatalogueItem, "id"> & ContentMeta & { slug: string };
 export type PostDocument = Omit<BlogPost, "date" | "sections"> & ContentMeta & { body: BlogPost["sections"]; publishedAt: Date };
 export type TestimonialDocument = Testimonial & ContentMeta;
-export type PricingDocument = Omit<PricingTier, "id" | "dbId" | "priceINR" | "priceUSD" | "advanceINR" | "advanceUSD"> & ContentMeta & {
-  slug: string; priceInr: number; priceUsd: number; advanceInr: number; advanceUsd: number;
+/** Historical records only; no public content reader or checkout uses these tiers. */
+export type PricingDocument = ContentMeta & {
+  slug: string; name: string; badge?: string; description: string; features: string[];
+  delivery: string; featured?: boolean;
+  priceInr: number; priceUsd: number; advanceInr: number; advanceUsd: number;
 };
 export type FaqDocument = ContentMeta & { question: string; answer: string };
 export type InquiryStatus = "new" | "contacted" | "won" | "archived";
@@ -20,7 +23,8 @@ export type BookingStatus = "created" | "awaiting_payment" | "paid" | "failed" |
 
 export interface Inquiry {
   id: number; name: string; email: string; phone: string | null; service: string;
-  budget: string; message: string; status: InquiryStatus; createdAt: Date;
+  // Legacy records may retain this value; new enquiries no longer collect it.
+  budget?: string; message: string; status: InquiryStatus; createdAt: Date;
 }
 export interface Booking {
   id: number; tierId: number | null; tierName: string; mode: "advance" | "full";

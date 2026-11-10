@@ -5,7 +5,7 @@ import type { ServiceKind } from "@/data/siteData";
 import { SERVICE_ICON } from "@/components/ui/icons";
 import { useTheme } from "@/components/providers/theme";
 import { Boundary } from "./Boundary";
-import { useCanRender3D, useInView } from "./useGraphics";
+import { useCanRender3D, useInView, useSceneProximity } from "./useGraphics";
 
 const ServiceObject = dynamic(() => import("./ServiceObject"), { ssr: false });
 const WebStackScene = dynamic(() => import("./WebStackScene"), { ssr: false });
@@ -18,12 +18,13 @@ const SeoScene = dynamic(() => import("./SeoScene"), { ssr: false });
 
 
 /**
- * Download service code in parallel once graphics capability is known.
+ * Download service code ahead of viewport entry once graphics capability is known.
  * GPU preparation is queued; renderers remain until the route unmounts.
  * Prepared offscreen models pause; mobile / low-end devices keep their fallback.
  */
 export function ServiceVisual({ kind, className = "" }: { kind: ServiceKind; className?: string }) {
   const [ref, renderActive] = useInView<HTMLDivElement>("700px", true);
+  const prepare = useSceneProximity(ref);
   const can3D = useCanRender3D(768);
   const { theme } = useTheme();
   const Icon = SERVICE_ICON[kind];
@@ -44,7 +45,7 @@ export function ServiceVisual({ kind, className = "" }: { kind: ServiceKind; cla
         <circle cx="200" cy="200" r="90" stroke="var(--c-ember)" strokeOpacity=".5" strokeDasharray="60 20" className="origin-center animate-spin-slow" />
         <path d="M200 0v70M200 330v70M0 200h70M330 200h70" stroke="var(--c-fg)" strokeOpacity=".18" />
       </svg>
-      {can3D ? (
+      {can3D && prepare ? (
         <Boundary fallback={fallback}>
           {kind === "web" ? (
             <WebStackScene light={theme === "light"} renderActive={renderActive} />

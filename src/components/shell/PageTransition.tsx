@@ -31,7 +31,6 @@ const LABELS: Record<string, string> = {
   "/portfolio": "Work",
   "/catalogues": "Catalogues",
   "/about": "About",
-  "/pricing": "Pricing",
   "/blog": "Journal",
   "/contact": "Contact",
 };

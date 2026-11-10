@@ -80,6 +80,7 @@ test('service renderers retain their models across visibility changes', () => {
     if (id === './Boundary') return { Boundary };
     assert.equal(id, './useGraphics');
     return {
+      useSceneProximity: () => true,
       useCanRender3D(minWidth, onInteraction) { assert.equal(minWidth, 768); assert.notEqual(onInteraction, true); return true; },
       useInView: () => [{ current: null }, active],
     };
@@ -108,6 +109,25 @@ test('active visibility still turns off so offscreen animation can pause', () =>
   h.observers[0].enter(true);
   h.observers[0].enter(false);
   assert.deepEqual(h.updates, [true, false]);
+});
+
+test('distant scenes wait until approaching and retain preparation after leaving', () => {
+  const h = graphics();
+  const element = {};
+  h.api.useSceneProximity({ current: element });
+  const [cleanup] = h.effects();
+  const observer = h.observers[0];
+  assert.equal(observer.element, element);
+  assert.equal(observer.margin, '2400px');
+  observer.enter(false);
+  assert.deepEqual(h.updates, []);
+  observer.enter(true);
+  assert.deepEqual(h.updates, [true]);
+  assert.equal(observer.disconnected, true);
+  observer.enter(false);
+  assert.deepEqual(h.updates, [true]);
+  cleanup();
+  assert.equal(observer.disconnected, true);
 });
 
 test('a fully covered sticky scene pauses and resumes on exposure without unmounting', () => {

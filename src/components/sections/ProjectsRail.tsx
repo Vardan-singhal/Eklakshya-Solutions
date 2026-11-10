@@ -95,7 +95,6 @@ export function ProjectsRail({ projects }: { projects: ProjectItem[] }) {
               href={`/portfolio/${p.slug}`}
               data-card
               data-cursor="View"
-              aria-label={`${p.title} — case study`}
               className="group relative block w-[85vw] max-w-[340px] shrink-0 snap-center sm:w-[56vw] sm:max-w-none lg:w-[34vw] lg:snap-align-none"
             >
               <div className="relative h-[min(54vh,480px)] min-h-[340px] overflow-hidden rounded-[1.5rem] border border-line bg-surface sm:min-h-[360px] sm:rounded-[1.75rem]">

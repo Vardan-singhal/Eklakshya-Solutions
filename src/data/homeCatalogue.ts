@@ -17,7 +17,7 @@ export const HOME_CATALOGUE: CatalogueItem = {
     ],
     chapterLabel: "Chapter",
     invitationLabel: "The next chapter is yours",
-    invitationHeading: "Better outcomes. Clear timelines. Fair costs.",
+    invitationHeading: "Better outcomes. Clear timelines.",
     closingLine: "Built around your goals",
   },
   plates: [
@@ -31,7 +31,7 @@ export const HOME_CATALOGUE: CatalogueItem = {
       specs: [
         "Start with your customers and business goals.",
         "Define deliverables, priorities and success.",
-        "Agree the scope, milestones and budget.",
+        "Agree the scope and milestones.",
       ],
     },
     {
@@ -70,7 +70,7 @@ export const HOME_CATALOGUE: CatalogueItem = {
       specs: [
         "Check the finished work against your brief.",
         "Prepare final assets and a clear handover.",
-        "Aim for the best result within time and cost.",
+        "Aim for the best result within the agreed timeline.",
       ],
     },
   ],

@@ -53,11 +53,8 @@ export default async function CataloguesPage() {
           ))}
         </div>
         <Reveal className="mt-16 flex flex-wrap items-center gap-6">
-          <Button href="/contact?service=catalogue-design" size="lg" cursor="Quote">
+          <Button href="/contact?service=catalogue-design" size="lg" cursor="Discuss">
             Commission a catalogue
-          </Button>
-          <Button href="/pricing" size="lg" variant="outline" icon={false}>
-            View packages
           </Button>
         </Reveal>
       </Section>

@@ -63,14 +63,14 @@ const STAGES = [
     title: "BILLING & MRR",
     tab: "Billing & MRR",
     desc: "Paid invoices become recurring revenue that compounds every month.",
-    tip: "MRR TICKS TO $12,400",
+    tip: "RECURRING REVENUE GROWS WITH ADOPTION",
   },
 ];
 
 const PLANS = [
-  { id: "free", name: "FREE", price: "$0", per: "/mo", limit: 25000, seats: 3, note: "1 WORKSPACE" },
-  { id: "pro", name: "PRO", price: "$29", per: "/mo", limit: 60000, seats: 12, note: "MOST POPULAR" },
-  { id: "business", name: "BUSINESS", price: "$99", per: "/mo", limit: 120000, seats: 40, note: "SCALE + SSO" },
+  { id: "free", name: "FREE", limit: 25000, seats: 3, note: "1 WORKSPACE" },
+  { id: "pro", name: "PRO", limit: 60000, seats: 12, note: "MOST POPULAR" },
+  { id: "business", name: "BUSINESS", limit: 120000, seats: 40, note: "SCALE + SSO" },
 ];
 
 const POD_DEFS = [

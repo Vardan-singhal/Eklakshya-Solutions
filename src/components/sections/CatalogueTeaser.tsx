@@ -44,7 +44,7 @@ export function CatalogueTeaser({ catalogue }: { catalogue: CatalogueItem }) {
               Open the showcase
             </Button>
             <Button href="/contact?service=catalogue-design" variant="outline" icon={false}>
-              Get a quote
+              Get in touch
             </Button>
           </Reveal>
         </div>

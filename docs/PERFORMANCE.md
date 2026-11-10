@@ -1,6 +1,6 @@
 # UI, animation and performance verification
 
-> Current-build notice: service models now prepare proactively. The historical scores below apply to the earlier interaction-gated implementation. See [MODEL-READINESS.md](MODEL-READINESS.md) for current measurements and remaining limitations.
+> Current-build notice: see [DESKTOP-PERFORMANCE-2026-11-10.md](DESKTOP-PERFORMANCE-2026-11-10.md) for the current worker renderer, measurements and verification limits. The scores below are historical and do not describe the current build.
 
 Measured on 3 November 2026 against a local Next.js production build using Lighthouse 13.6.0 and installed Chrome in headless mode. Mobile uses Lighthouse's default mobile profile; desktop uses its desktop preset. Default simulated throttling was retained.
 
@@ -15,7 +15,6 @@ Homepage baseline performance: **47 mobile / 42 desktop**. Final performance sco
 | /about | 97 | 100 |
 | /portfolio | 94 | 99 |
 | /catalogues | 98 | 99 |
-| /pricing | 94 | 100 |
 | /blog | 98 | 100 |
 | /contact | 96 | 99 |
 

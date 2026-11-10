@@ -11,8 +11,8 @@ import { POST as inquiry } from "../src/app/api/inquiries/route.ts";
 import { POST as createOrder } from "../src/app/api/payments/create-order/route.ts";
 import { POST as verify } from "../src/app/api/payments/verify/route.ts";
 import { POST as webhook } from "../src/app/api/payments/webhook/route.ts";
-import { getCatalogues, getProjects } from "../src/lib/content.ts";
-import { CATALOGUES, PROJECTS, PRICING_TIERS } from "../src/data/siteData.ts";
+import { getCatalogues, getProjects, getPosts, getServices, getTestimonials } from "../src/lib/content.ts";
+import { CATALOGUES, PROJECTS, BLOG_POSTS } from "../src/data/siteData.ts";
 
 const variables = ["MONGODB_URI", "MONGODB_DB", "MONGODB_DNS_SERVERS", "ADMIN_PASSWORD", "RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET", "RAZORPAY_WEBHOOK_SECRET", "SOCIAL_LINKEDIN_URL", "SOCIAL_GITHUB_URL", "SOCIAL_INSTAGRAM_URL", "SOCIAL_WHATSAPP_URL"];
 let saved;
@@ -248,19 +248,46 @@ test("enquiries keep their existing defaults in MongoDB", async () => {
   assert.equal(response.status, 200);
   assert.equal(transport.inserts[0].document.status, "new");
   assert.equal(transport.inserts[0].document.service, "General enquiry");
+  assert.equal(Object.hasOwn(transport.inserts[0].document, "budget"), false);
 });
 
-test("manual payment bookings retain numeric references and server-calculated amounts", async () => {
+test("enquiries ignore legacy budget input without changing other submitted fields", async () => {
   const transport = mongo();
-  const tier = PRICING_TIERS[0];
-  const response = await createOrder(request({ tierId: tier.id, name: "Build test", email: "test@example.com", amount: 1 }));
+  const response = await inquiry(request({ name: "Build test", email: "test@example.com", message: "Please build our project.", budget: "legacy value", service: "Web Development", phone: "1234567890" }));
   assert.equal(response.status, 200);
+  const { document } = transport.inserts[0];
+  assert.equal(Object.hasOwn(document, "budget"), false);
+  assert.equal(document.service, "Web Development");
+  assert.equal(document.phone, "1234567890");
+});
+
+test("existing MongoDB content cannot reintroduce retired service fields or marketing copy", async () => {
+  mongo();
+  mock.method(Collection.prototype, "find", function () {
+    const collection = this.collectionName;
+    return { sort() { return this; }, async toArray() {
+      if (collection === "services") return [{ slug: "web-development", fromPrice: "legacy amount", title: "Web Development" }];
+      if (collection === "posts") return [{ slug: "ai-product-imagery-for-exporters", title: "Replacing ₹5 lakh photoshoots with AI product imagery that stays on-brand", publishedAt: new Date("2025-01-14") }];
+      if (collection === "projects") return [{ ...PROJECTS[4], problem: "Photographing physical prototypes took nine weeks and a large budget per assembly before every expo." }];
+      if (collection === "testimonials") return [{ quote: "Clear scope, honest estimates and no surprises", author: "Client" }];
+      return [];
+    } };
+  });
+  assert.equal(Object.hasOwn((await getServices())[0], "fromPrice"), false);
+  assert.equal(Object.hasOwn((await getServices())[0], "from"), false);
+  assert.equal((await getPosts())[0].title, BLOG_POSTS.find(post => post.slug === "ai-product-imagery-for-exporters").title);
+  assert.doesNotMatch((await getProjects())[0].problem, /budget/);
+  assert.doesNotMatch((await getTestimonials())[0].quote, /estimates/);
+});
+
+test("retired checkout returns no amounts and cannot create bookings", async () => {
+  const transport = mongo();
+  const response = await createOrder(request({ tierId: "sprint", name: "Build test", email: "test@example.com", amount: 1 }));
+  assert.equal(response.status, 410);
   const body = await response.json();
-  assert.equal(body.mode, "manual");
-  assert.equal(body.reference, "EK-00001");
-  assert.equal(body.bookingId, 1);
-  assert.equal(body.amount, tier.advanceINR);
-  assert.equal(transport.updates[0].update.$set.status, "awaiting_payment");
+  assert.equal(Object.hasOwn(body, "amount"), false);
+  assert.equal(transport.inserts.length, 0);
+  assert.equal(transport.updates.length, 0);
 });
 
 test("verified payment signatures update the matching MongoDB booking", async () => {

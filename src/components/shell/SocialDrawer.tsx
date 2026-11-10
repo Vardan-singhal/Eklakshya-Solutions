@@ -97,7 +97,7 @@ export function SocialDrawer() {
       <button
         ref={trigger}
         type="button"
-        aria-label="Open social media links"
+        aria-label="Connect — open social media links"
         aria-haspopup="dialog"
         aria-controls="social-drawer"
         aria-expanded={open}

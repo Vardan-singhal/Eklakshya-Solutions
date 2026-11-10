@@ -78,7 +78,7 @@ export function ServicesStack({ services }: { services: ServiceItem[] }) {
                     ))}
                   </ul>
                   <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4 pt-6 sm:mt-auto sm:pt-10">
-                    <Button href={`/contact?service=${s.id}`} cursor="Quote">
+                    <Button href={`/contact?service=${s.id}`} cursor="Discuss">
                       Start your project
                     </Button>
                     <Link href={`/services#${s.id}`} className="link-underline t-label text-fg">
