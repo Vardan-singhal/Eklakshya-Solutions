@@ -47,7 +47,7 @@ function Face({ page, side, index, eager = false }: { page: CataloguePageData; s
             <path d="M100 0v200M0 100h200" stroke="#f5efe3" strokeOpacity=".2" />
             <circle cx="100" cy="100" r="5" fill="#e9b949" />
           </svg>
-          <p className="relative font-mono text-[2.6cqw] uppercase tracking-[0.3em] text-[#39bfff]">Eklakshya · Catalogue {page.year}</p>
+          <p className="relative font-mono text-[2.6cqw] uppercase tracking-[0.3em] text-[#39bfff]">Eklakshya · {page.label ?? "Catalogue"} {page.year}</p>
           <div className="relative">
             <p className="font-mono text-[2.8cqw] uppercase tracking-[0.2em] text-[#a39e92]">{page.industry}</p>
             <h3 className="mt-[3cqw] font-display text-[13cqw] font-semibold leading-[0.95] tracking-tight">{page.title}</h3>
@@ -59,16 +59,16 @@ function Face({ page, side, index, eager = false }: { page: CataloguePageData; s
     case "intro":
       body = (
         <div className="flex h-full flex-col justify-between p-[9cqw]">
-          <p className="font-mono text-[2.6cqw] uppercase tracking-[0.3em] text-[#85590b]">About this catalogue</p>
+          <p className="font-mono text-[2.6cqw] uppercase tracking-[0.3em] text-[#85590b]">{page.label ?? "About this catalogue"}</p>
           <p className="font-display text-[6.6cqw] font-medium leading-[1.15] tracking-tight">{page.blurb}</p>
           <div className="grid grid-cols-2 gap-[4cqw] border-t border-black/15 pt-[5cqw]">
             <div>
-              <p className="font-display text-[10cqw] font-semibold leading-none">{page.skus}</p>
-              <p className="mt-[1.5cqw] font-mono text-[2.4cqw] uppercase tracking-[0.2em] text-black/60">SKUs indexed</p>
+              <p className="font-display text-[10cqw] font-semibold leading-none">{page.highlights?.[0].value ?? page.skus}</p>
+              <p className="mt-[1.5cqw] font-mono text-[2.4cqw] uppercase tracking-[0.2em] text-black/60">{page.highlights?.[0].label ?? "SKUs indexed"}</p>
             </div>
             <div>
-              <p className="font-display text-[10cqw] font-semibold leading-none">300</p>
-              <p className="mt-[1.5cqw] font-mono text-[2.4cqw] uppercase tracking-[0.2em] text-black/60">DPI print-ready</p>
+              <p className="font-display text-[10cqw] font-semibold leading-none">{page.highlights?.[1].value ?? "300"}</p>
+              <p className="mt-[1.5cqw] font-mono text-[2.4cqw] uppercase tracking-[0.2em] text-black/60">{page.highlights?.[1].label ?? "DPI print-ready"}</p>
             </div>
           </div>
         </div>
@@ -78,8 +78,8 @@ function Face({ page, side, index, eager = false }: { page: CataloguePageData; s
       body = (
         <div className="flex h-full flex-col p-[8cqw]">
           <div className="flex items-center justify-between font-mono text-[2.4cqw] uppercase tracking-[0.25em] text-black/60">
-            <span>Plate {String(page.n).padStart(2, "0")}</span>
-            <span className="text-[#85590b]">{page.sku} SKUs</span>
+            <span>{page.label ?? "Plate"} {String(page.n).padStart(2, "0")}</span>
+            <span className="text-[#85590b]">{page.caption ?? `${page.sku} SKUs`}</span>
           </div>
           <div className="relative mt-[4cqw] aspect-[4/3] w-full overflow-hidden rounded-[1.5cqw] bg-black">
             <Image src={page.image} alt={page.alt} fill sizes="(min-width:1024px) 440px, 50vw" className="object-cover" />
@@ -103,8 +103,8 @@ function Face({ page, side, index, eager = false }: { page: CataloguePageData; s
       tone = "bg-gradient-to-br from-[#e9b949] to-[#39bfff] text-[#120f0b]";
       body = (
         <div className="flex h-full flex-col justify-between p-[9cqw]">
-          <p className="font-mono text-[2.6cqw] uppercase tracking-[0.3em]">Order / enquire</p>
-          <p className="font-display text-[10cqw] font-semibold leading-[1] tracking-tight">Want a catalogue like this?</p>
+          <p className="font-mono text-[2.6cqw] uppercase tracking-[0.3em]">{page.label ?? "Order / enquire"}</p>
+          <p className="font-display text-[10cqw] font-semibold leading-[1] tracking-tight">{page.heading ?? "Want a catalogue like this?"}</p>
           <div className="space-y-[1.5cqw] font-mono text-[2.8cqw] uppercase tracking-[0.1em]">
             <p>{SITE.email}</p>
             <p>{SITE.phone}</p>
@@ -118,7 +118,7 @@ function Face({ page, side, index, eager = false }: { page: CataloguePageData; s
         <div className="flex h-full flex-col items-center justify-center gap-[5cqw] p-[9cqw] text-center">
           <TargetLogo size={64} className="text-[#f5efe3]" />
           <p className="font-display text-[7cqw] font-semibold tracking-tight">Eklakshya Solutions</p>
-          <p className="font-mono text-[2.6cqw] uppercase tracking-[0.3em] text-[#a39e92]">Made for {page.client}</p>
+          <p className="font-mono text-[2.6cqw] uppercase tracking-[0.3em] text-[#a39e92]">{page.closingLine ?? `Made for ${page.client}`}</p>
         </div>
       );
       break;

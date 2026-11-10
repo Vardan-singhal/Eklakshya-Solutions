@@ -11,13 +11,18 @@ const publicFile = src => new URL('../public' + src, import.meta.url);
 
 test('homepage illustration stays independent of the supplied PDF showcase', () => {
   const home = buildCataloguePages(HOME_CATALOGUE);
-  assert.equal(HOME_CATALOGUE.id, 'apex-spares');
-  assert.equal(HOME_CATALOGUE.title, 'Heavy Spares');
+  assert.equal(HOME_CATALOGUE.id, 'home-studio-story');
+  assert.equal(HOME_CATALOGUE.client, 'Eklakshya Solutions');
   assert.equal(home.length, 8);
   assert.equal(home[0].kind, 'cover');
   assert.equal(home.some(page => page.kind === 'document'), false);
   assert.equal(CATALOGUES.some(catalogue => catalogue.id === HOME_CATALOGUE.id), false);
   for (const catalogue of CATALOGUES) assert.equal(buildCataloguePages(catalogue)[0].kind, 'document');
+  assert.deepEqual(home.map(page => page.kind), ['cover', 'intro', 'plate', 'plate', 'plate', 'plate', 'contact', 'end']);
+  assert.deepEqual(home.filter(page => page.kind === 'plate').map(page => page.caption), ['Discover', 'Create', 'Optimise', 'Deliver']);
+  for (const page of home.filter(page => page.kind === 'plate')) assert.ok(statSync(publicFile(page.image)).size > 1000);
+  assert.equal(home[6].heading, HOME_CATALOGUE.story.invitationHeading);
+  assert.equal(home[7].closingLine, HOME_CATALOGUE.story.closingLine);
 });
 
 test('both supplied PDFs have every original page asset in source order', () => {

@@ -11,7 +11,7 @@ All original pages remain in their original order. Each book adds an unprinted i
 
 Original PDFs and pre-rendered WebP pages are in `public/catalogues/`. `src/data/catalogue-pages.json` records the ordered images, dimensions, original page counts and PDF SHA-256 hashes. Pages retain their full aspect ratio without cropping. The dedicated showcase prepares its opening spread eagerly.
 
-The homepage uses the separate `HOME_CATALOGUE` illustration in `src/data/homeCatalogue.ts`, restored from commit `df077d5`. Its original eight-page design, inline animation and layout are independent of these uploaded PDFs. The original demo photo paths are retained; those photo files are not present in this checkout.
+The homepage uses the separate `HOME_CATALOGUE` story in `src/data/homeCatalogue.ts`. Its eight pages introduce the studio's services, follow discovery, creation, refinement and delivery, and close with a commitment to outcomes, timelines and cost. Images reference existing artwork from the supplied catalogues. Optional story copy replaces product-specific labels within the original page structure; its design, inline animation and layout remain independent of the dedicated PDF showcase.
 
 The existing GSAP page-turn engine, pinning, easing, shadows, forward/reverse controls, gallery transition and mobile swipe layout are unchanged. Previously seeded demo catalogue IDs are excluded from reads, while additional real database catalogues remain supported. No database records were deleted or modified.
 

@@ -336,6 +336,7 @@ export interface CataloguePlate {
   imageAlt: string;
   sku: number;
   specs: string[];
+  caption?: string;
 }
 
 export interface CataloguePageAsset {
@@ -355,6 +356,15 @@ export interface CatalogueItem {
   plates: CataloguePlate[];
   pages?: CataloguePageAsset[];
   pdf?: string;
+  story?: {
+    coverLabel: string;
+    introLabel: string;
+    highlights: [{ value: string; label: string }, { value: string; label: string }];
+    chapterLabel: string;
+    invitationLabel: string;
+    invitationHeading: string;
+    closingLine: string;
+  };
 }
 
 export const CATALOGUES: CatalogueItem[] = [
