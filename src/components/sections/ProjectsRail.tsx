@@ -12,7 +12,7 @@ import { SectionHeader } from "@/components/ui/layout";
 
 /**
  * Pinned horizontal gallery: vertical scroll drives the track sideways while each image
- * drifts inside its frame. Hover expands the details. On mobile it becomes a swipe rail.
+ * drifts inside its frame. Hover or touch reveals details; every size uses the same scroll rig.
  * The track's left edge is lined up with the page container via `pl-container`.
  */
 export function ProjectsRail({ projects }: { projects: ProjectItem[] }) {
@@ -26,14 +26,14 @@ export function ProjectsRail({ projects }: { projects: ProjectItem[] }) {
     const trackEl = track.current;
     if (!pinEl || !trackEl) return;
     const mm = gsap.matchMedia();
-    mm.add("(min-width: 1024px) and (prefers-reduced-motion: no-preference)", () => {
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
       const dist = () => Math.max(0, trackEl.scrollWidth - window.innerWidth);
       const tween = gsap.to(trackEl, {
         x: () => -dist(),
         ease: "none",
         scrollTrigger: {
           trigger: pinEl,
-          start: "top top",
+          start: () => window.innerWidth >= 1024 || pinEl.offsetHeight <= window.innerHeight ? "top top" : "bottom bottom",
           end: () => `+=${dist()}`,
           pin: true,
           scrub: SCROLL_MOTION.scrub,
@@ -59,8 +59,8 @@ export function ProjectsRail({ projects }: { projects: ProjectItem[] }) {
   }, [projects]);
 
   return (
-    <section id="work" data-section="Work" aria-labelledby="work-title" className="relative border-y border-line bg-bg/60">
-      <div ref={pin} className="flex flex-col justify-center py-16 sm:py-24 lg:h-[100svh] lg:py-0">
+    <section id="work" data-section="Work" aria-labelledby="work-title" className="relative max-lg:overflow-clip border-y border-line bg-bg/60">
+      <div ref={pin} className="project-rail-stage flex h-[100svh] flex-col justify-center py-0">
         <div className="container-x w-full">
           <SectionHeader
             compact
@@ -68,7 +68,7 @@ export function ProjectsRail({ projects }: { projects: ProjectItem[] }) {
             eyebrow="Selected work"
             title={"Proof, not *promises.*"}
             action={
-              <div className="t-label hidden items-center gap-5 lg:flex" aria-hidden>
+              <div className="t-label flex items-center gap-5" aria-hidden>
                 <span>
                   <span ref={counter} className="text-fg">
                     01
@@ -87,7 +87,7 @@ export function ProjectsRail({ projects }: { projects: ProjectItem[] }) {
         <div
           ref={track}
           data-cursor="Scroll"
-          className="pl-container flex snap-x snap-mandatory gap-4 overflow-x-auto pb-6 pr-[var(--gutter)] will-change-transform [scrollbar-width:none] sm:gap-6 lg:snap-none lg:gap-8 lg:overflow-visible lg:pb-0 lg:pr-[14vw]"
+          className="pl-container flex gap-4 overflow-visible pr-[14vw] will-change-transform sm:gap-6 lg:gap-8"
         >
           {projects.map((p, i) => (
             <Link
@@ -104,7 +104,7 @@ export function ProjectsRail({ projects }: { projects: ProjectItem[] }) {
                     alt={p.coverAlt}
                     fill
                     sizes="(min-width:1024px) 45vw, 90vw"
-                    className="object-cover transition-transform duration-[1200ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.07]"
+                    className="object-cover transition-transform duration-[1200ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.07] group-active:scale-[1.07]"
                   />
                 </div>
                 <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/10" />
@@ -112,14 +112,14 @@ export function ProjectsRail({ projects }: { projects: ProjectItem[] }) {
                 <span className="t-label absolute left-5 top-5 rounded-full border border-white/25 bg-black/30 px-2.5 py-1 text-white! backdrop-blur sm:left-6 sm:top-6 sm:px-3">
                   {String(i + 1).padStart(2, "0")} · {p.category}
                 </span>
-                <span className="absolute right-5 top-5 grid h-10 w-10 -translate-y-2 place-items-center rounded-full bg-ember-grad text-on-accent opacity-0 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100 sm:right-6 sm:top-6 sm:h-11 sm:w-11">
+                <span className="absolute right-5 top-5 grid h-10 w-10 -translate-y-2 place-items-center rounded-full bg-ember-grad text-on-accent opacity-0 transition-all duration-500 group-hover:translate-y-0 group-active:translate-y-0 group-hover:opacity-100 group-active:opacity-100 sm:right-6 sm:top-6 sm:h-11 sm:w-11">
                   <ArrowUpRight className="h-5 w-5" aria-hidden />
                 </span>
 
-                <div className="absolute inset-x-0 bottom-0 translate-y-[calc(100%-6rem)] p-5 text-white transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:translate-y-0 max-lg:translate-y-0 sm:translate-y-[calc(100%-6.5rem)] sm:p-8">
+                <div className="absolute inset-x-0 bottom-0 translate-y-[calc(100%-6rem)] p-5 text-white transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:translate-y-0 group-active:translate-y-0 sm:translate-y-[calc(100%-6.5rem)] sm:p-8">
                   <p className="t-label text-white/70!">{p.client}</p>
                   <h3 className="t-h4 mt-1.5 sm:mt-2">{p.title}</h3>
-                  <p className="mt-2 text-xs leading-5 text-white/80 opacity-0 transition-opacity delay-100 duration-500 group-hover:opacity-100 max-lg:opacity-100 line-clamp-3 sm:mt-3 sm:text-sm sm:leading-6 sm:line-clamp-none">{p.summary}</p>
+                  <p className="mt-2 text-xs leading-5 text-white/80 opacity-0 transition-opacity delay-100 duration-500 group-hover:opacity-100 group-active:opacity-100 line-clamp-3 sm:mt-3 sm:text-sm sm:leading-6 sm:line-clamp-none">{p.summary}</p>
                 </div>
               </div>
             </Link>
@@ -134,7 +134,7 @@ export function ProjectsRail({ projects }: { projects: ProjectItem[] }) {
               <span className="t-h3 block">
                 All <span className="text-gradient">projects</span>
               </span>
-              <span className="t-label mt-5 inline-flex items-center gap-2 group-hover:text-accent sm:mt-6">
+              <span className="t-label mt-5 inline-flex items-center gap-2 group-hover:text-accent group-active:text-accent sm:mt-6">
                 Browse the archive <ArrowUpRight className="h-4 w-4" aria-hidden />
               </span>
             </span>

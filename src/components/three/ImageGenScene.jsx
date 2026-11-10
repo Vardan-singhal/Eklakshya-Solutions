@@ -1,5 +1,8 @@
 "use client";
 
+import { SceneViewport } from "./SceneViewport";
+import { ResponsiveOrbitControls as OrbitControls } from "./ResponsiveOrbitControls";
+
 import { ScenePreparation } from "./ScenePreparation";
 import { servicePixelRatio } from "./useGraphics";
 import { SceneCompilation } from "./SceneCompilation";
@@ -35,7 +38,6 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import {
   Environment,
   Lightformer,
-  OrbitControls,
   RoundedBox,
 } from "@react-three/drei";
 
@@ -2172,24 +2174,39 @@ function LightRig({ active, env, rigIndex, gold, cyan, onInteract }) {
 
   const startDrag = useCallback(
     (event) => {
-      if (!active || event.pointerType === "touch") return;
+      if (!active || dragCleanup.current) return;
       event.stopPropagation();
-      const native = event.nativeEvent;
-      if (native?.preventDefault) native.preventDefault();
-      onInteract?.();
-      dragging.current = true;
+      const native = event.nativeEvent || event;
+      const touch = native.pointerType === "touch";
+      if (!touch && native?.preventDefault) native.preventDefault();
       const controls = controlsRef.current;
       const previousEnabled = controls?.enabled;
-      if (controls) controls.enabled = false;
+      let engaged = false;
+      const engage = () => {
+        engaged = true;
+        onInteract?.();
+        dragging.current = true;
+        if (controls) controls.enabled = false;
+      };
+      if (!touch) engage();
       const rect = gl.domElement.getBoundingClientRect();
       const move = (ev) => {
+        if (ev.pointerId !== native.pointerId) return;
+        if (touch && gl.domElement.dataset.multiTouch === 'true') { endDrag(); return; }
+        if (touch && !engaged) {
+          const dx = Math.abs(ev.clientX - native.clientX);
+          const dy = Math.abs(ev.clientY - native.clientY);
+          if (dy > 6 && dy > dx) { endDrag(); return; }
+          if (dx <= 6 || dx <= dy) return;
+          engage();
+        }
         if (!dragging.current) return;
         const nx = clamp((ev.clientX - rect.left) / Math.max(1, rect.width), 0.02, 0.98);
         const ny = clamp((ev.clientY - rect.top) / Math.max(1, rect.height), 0.04, 0.9);
         azimuth.current = nx * Math.PI * 2;
         elevation.current = clamp((1 - ny) * 1.05 + 0.09, 0.1, 1.16);
       };
-      const up = () => endDrag();
+      const up = (ev) => { if (ev.pointerId === native.pointerId) endDrag(); };
       window.addEventListener("pointermove", move, { passive: true });
       window.addEventListener("pointerup", up, { passive: true });
       window.addEventListener("pointercancel", up, { passive: true });
@@ -2197,7 +2214,7 @@ function LightRig({ active, env, rigIndex, gold, cyan, onInteract }) {
         window.removeEventListener("pointermove", move);
         window.removeEventListener("pointerup", up);
         window.removeEventListener("pointercancel", up);
-        if (controls) controls.enabled = previousEnabled;
+        if (controls && engaged) controls.enabled = previousEnabled;
       };
     },
     [active, endDrag, gl, onInteract]
@@ -2944,11 +2961,12 @@ export default function ImageGenScene({ light = false, renderActive = true }) {
             style={{ position: 'absolute', inset: 0, background: 'transparent', touchAction: coarse ? 'pan-y' : 'none' }}
             resize={{ scroll: false, debounce: { scroll: 50, resize: 80 } }}
           >
+            <SceneViewport fov={34} />
             <React.Suspense fallback={null}>
               <StudioScene
                 stage={state.stage} envIndex={state.envIndex} rigIndex={state.rigIndex}
                 product={state.product} resolution={state.resolution} assets={assets}
-                gold={gold} cyan={cyan} enableRotate={!coarse} startedAtRef={startedAtRef}
+                gold={gold} cyan={cyan} enableRotate startedAtRef={startedAtRef}
                 onEnvHover={ignoreHover} onEnvHoverEnd={ignoreHover} onEnvSelect={selectEnvironment}
                 onThumbHover={ignoreHover} onThumbHoverEnd={ignoreHover} onInteract={pause}
               />

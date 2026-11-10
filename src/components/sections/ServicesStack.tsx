@@ -21,8 +21,20 @@ export function ServicesStack({ services }: { services: ServiceItem[] }) {
   useIsoLayoutEffect(() => {
     const el = root.current;
     if (!el) return;
+    const stackCards = Array.from(el.querySelectorAll<HTMLElement>("[data-stack-card]"));
+    const fitCards = () => {
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+      stackCards.forEach((card, index) => {
+        if (window.innerWidth >= 1024) card.style.removeProperty("--stack-top");
+        else card.style.setProperty("--stack-top", `${Math.min((6.25 + index * 0.9) * rem, window.innerHeight - card.offsetHeight - 16)}px`);
+      });
+    };
+    const sizes = new ResizeObserver(fitCards);
+    stackCards.forEach((card) => sizes.observe(card));
+    window.addEventListener("resize", fitCards);
+    fitCards();
     const mm = gsap.matchMedia();
-    mm.add("(min-width: 1024px) and (prefers-reduced-motion: no-preference)", () => {
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
       const cards = gsap.utils.toArray<HTMLElement>("[data-stack-card]", el);
       cards.forEach((card, i) => {
         const next = cards[i + 1];
@@ -34,7 +46,12 @@ export function ServicesStack({ services }: { services: ServiceItem[] }) {
         gsap.to(shade, { opacity: 0.6, ease: "none", scrollTrigger });
       });
     });
-    return () => mm.revert();
+    return () => {
+      sizes.disconnect();
+      window.removeEventListener("resize", fitCards);
+      mm.revert();
+      stackCards.forEach((card) => card.style.removeProperty("--stack-top"));
+    };
   }, [services]);
 
   return (
@@ -53,7 +70,7 @@ export function ServicesStack({ services }: { services: ServiceItem[] }) {
 
       <div ref={root} className="space-y-6 pb-[12vh] lg:space-y-8">
         {services.map((s, i) => (
-          <article key={s.id} data-stack-card className="lg:sticky" style={{ top: `calc(6.25rem + ${i * 0.9}rem)` }} aria-labelledby={`stack-${s.id}`}>
+          <article key={s.id} data-stack-card className="sticky" style={{ top: `var(--stack-top, calc(6.25rem + ${i * 0.9}rem))` }} aria-labelledby={`stack-${s.id}`}>
             <div data-stack-inner className="panel relative origin-top overflow-hidden shadow-[0_30px_80px_-40px_rgba(0,0,0,0.6)]">
               <div data-stack-shade aria-hidden className="pointer-events-none absolute inset-0 z-20 bg-bg opacity-0" />
               <div className="grid gap-10 lg:min-h-[min(58vh,520px)] lg:grid-cols-12 lg:gap-12">

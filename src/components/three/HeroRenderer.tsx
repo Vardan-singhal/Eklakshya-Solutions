@@ -36,7 +36,7 @@ export default function HeroRenderer({ active, light, onRendered }: { active: bo
       setFallback(true);
     };
     const send = (message: HeroWorkerMessage, transfer: Transferable[] = []) => worker?.postMessage(message, transfer);
-    const size = () => ({ width: host.clientWidth, height: host.clientHeight, dpr: heroPixelRatio(window.devicePixelRatio) });
+    const size = () => ({ width: host.clientWidth, height: host.clientHeight, dpr: heroPixelRatio(window.devicePixelRatio), compact: window.innerWidth < 1024 || window.innerWidth <= window.innerHeight });
     const resize = () => send({ type: "resize", size: size() });
     const watchDensity = () => {
       density?.removeEventListener("change", onDensityChange);
@@ -65,10 +65,14 @@ export default function HeroRenderer({ active, light, onRendered }: { active: bo
       workerRef.current = worker;
       worker.onmessage = (event: MessageEvent<{ type: string }>) => {
         if (stopped) return;
+        const visual = host.closest<HTMLElement>("[data-hero-visual]");
         if (event.data.type === "ready") {
+          if (visual) visual.dataset.sceneState = "ready";
           performance.mark("hero:first-frame");
           performance.mark("hero:worker-ready");
           onRendered();
+        } else if (event.data.type === "loading") {
+          if (visual) visual.dataset.sceneState = "loading";
         } else if (event.data.type === "failed") fail();
       };
       worker.onerror = (event) => { event.preventDefault(); fail(); };
@@ -82,6 +86,7 @@ export default function HeroRenderer({ active, light, onRendered }: { active: bo
         send({ type: "controls", controls: controls.current });
       });
       window.addEventListener("pointermove", move, { passive: true });
+      window.addEventListener("pointerdown", move, { passive: true });
       frame = requestAnimationFrame(tick);
     } catch { fail(); }
     return () => {
@@ -91,6 +96,7 @@ export default function HeroRenderer({ active, light, onRendered }: { active: bo
       density?.removeEventListener("change", onDensityChange);
       cancelAnimationFrame(frame);
       window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerdown", move);
       worker?.terminate();
       workerRef.current = null;
       canvas.remove();

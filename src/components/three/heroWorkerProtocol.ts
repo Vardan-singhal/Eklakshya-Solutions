@@ -1,5 +1,5 @@
 export type HeroControls = { active: boolean; light: boolean; released: boolean };
-export type HeroSize = { width: number; height: number; dpr: number };
+export type HeroSize = { width: number; height: number; dpr: number; compact?: boolean };
 export type HeroWorkerMessage =
   | { type: "init"; canvas: OffscreenCanvas; size: HeroSize; controls: HeroControls }
   | { type: "resize"; size: HeroSize }
@@ -12,5 +12,5 @@ export function heroPixelRatio(deviceRatio: number) {
 }
 
 export function heroFrameLoop(controls: HeroControls, drawn: boolean) {
-  return controls.active && (!drawn || controls.released) ? "always" : "never";
+  return !drawn || (controls.active && controls.released) ? "always" : "never";
 }

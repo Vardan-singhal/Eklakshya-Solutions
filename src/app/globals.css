@@ -669,6 +669,31 @@ html {
 [id] { scroll-margin-top: calc(max(var(--nav-height, 5rem), var(--nav-clearance)) + var(--section-nav-height, 0px) + 1rem); }
 .grain { contain: strict; will-change: transform; }
 
+/* Scene shells keep the desktop artwork and timelines at every viewport size. */
+.scene-viewport[data-scene-state="ready"] [data-scene-loading] { display: none; }
+.scene-viewport[data-scene-state="unavailable"] [data-scene-loading] { display: none; }
+[data-context-loading] { display: none; }
+[data-hero-visual][data-scene-state="loading"] [data-context-loading] { display: grid; }
+
+@media (max-width: 1023px), (max-aspect-ratio: 1/1) {
+  .hero-stage { --hero-art-height: min(80vw, 480px, max(1px, calc(100svh - var(--nav-height, 5rem) - 4rem))); display: flex; flex-direction: column; height: auto; min-height: 100svh; }
+  .hero-copy { order: 1; height: auto; padding-bottom: 1rem; }
+  .hero-scene-panel { position: relative; inset: auto; order: 2; width: 100%; height: var(--hero-art-height); flex-shrink: 0; margin-block: 1rem 3rem; }
+  .hero-readability-veil { bottom: calc(var(--hero-art-height) + 4rem); }
+  .hero-hud-coordinates { top: auto; right: 1rem; bottom: calc(var(--hero-art-height) + 1rem); }
+}
+@media (min-width: 1024px) and (max-aspect-ratio: 1/1) {
+  .hero-copy { padding-top: 8rem; }
+}
+@media (max-width: 1023px) {
+  .scene-viewport { max-height: max(1px, calc(100svh - max(var(--nav-height, 5rem), var(--nav-clearance, 5rem)) - var(--section-nav-height, 0px) - 2rem)); }
+  .flipbook-stage { --flipbook-fit-height: max(1px, calc(100svh - var(--nav-height, 5rem) - 10rem)); }
+  .flipbook-stage[data-book-variant="pinned"] { padding-block: calc(var(--nav-height, 5rem) + 1rem) 1rem; }
+  .project-rail-stage { height: auto; min-height: 100svh; padding-block: calc(var(--nav-height, 5rem) + 1rem) 2rem; }
+  .project-rail-stage [data-card] > div,
+  .project-rail-stage [data-cursor="All"] { min-height: min(340px, calc(100svh - var(--nav-height, 5rem) - 5rem)); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-w] { opacity: 1 !important; }
 }

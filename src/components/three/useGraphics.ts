@@ -4,13 +4,11 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { observeStackOcclusion } from "@/lib/modelVisibility";
 
 let webglCache: boolean | null = null;
-// Preserve activation across route changes and late-mounted service cards.
-let graphicsInteractionStarted = false;
 function hasWebGL() {
   if (webglCache !== null) return webglCache;
   try {
     const c = document.createElement("canvas");
-    const gl = (c.getContext("webgl2") || c.getContext("webgl")) as WebGLRenderingContext | null;
+    const gl = c.getContext("webgl2") as WebGL2RenderingContext | null;
     webglCache = !!gl;
     gl?.getExtension("WEBGL_lose_context")?.loseContext();
   } catch {
@@ -20,41 +18,19 @@ function hasWebGL() {
 }
 
 /**
- * Decides whether to mount a WebGL scene. Low-end devices, small screens,
- * reduced-motion, data-saver and no-WebGL browsers get the static SVG fallback.
- * Add ?force3d to the URL to bypass the heuristics when testing.
+ * Probe actual renderer support. Viewport size, input type and hardware estimates
+ * never substitute a different experience for a supported device.
  */
-export function useCanRender3D(minWidth = 768, onInteraction = false, onResolved?: (capable: boolean) => void) {
-  const [ok, setOk] = useState(false);
+export function useCanRender3D(onResolved?: (capable: boolean) => void) {
+  const [ok, setOk] = useState<boolean | null>(null);
   useEffect(() => {
-    const force = new URLSearchParams(window.location.search).has("force3d");
-    const nav = navigator as Navigator & { deviceMemory?: number; connection?: { saveData?: boolean } };
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const lowMem = typeof nav.deviceMemory === "number" && nav.deviceMemory < 4;
-    const lowCpu = typeof nav.hardwareConcurrency === "number" && nav.hardwareConcurrency < 4;
-    const saveData = !!nav.connection?.saveData;
-    const capable = force || (!reduced && !lowMem && !lowCpu && !saveData && window.innerWidth >= minWidth);
-    if (!capable) { onResolved?.(false); return; }
-    // Keep the animated SVG visible until the interactive renderer is needed.
-    const events = ["pointermove", "pointerdown", "keydown", "wheel", "scroll"] as const;
-    let frame = 0;
-    const removeListeners = () => events.forEach((event) => window.removeEventListener(event, activate));
-    const activate = (event?: Event) => {
-      if (event) graphicsInteractionStarted = true;
-      removeListeners();
-      frame = requestAnimationFrame(() => {
-        const available = hasWebGL();
-        setOk(available);
-        onResolved?.(available);
-      });
-    };
-    if (onInteraction && !force && !graphicsInteractionStarted) {
-      events.forEach((event) => window.addEventListener(event, activate, { passive: true, once: true }));
-    } else {
-      activate();
-    }
-    return () => { removeListeners(); cancelAnimationFrame(frame); };
-  }, [minWidth, onInteraction, onResolved]);
+    const frame = requestAnimationFrame(() => {
+      const available = hasWebGL();
+      setOk(available);
+      onResolved?.(available);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [onResolved]);
   return ok;
 }
 

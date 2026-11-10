@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
 import { engine } from "@/lib/engine";
+import { heroComposition } from "@/lib/responsiveScene";
 
 const EMBER = "#e9b949";
 const TINT = "#39bfff";
@@ -35,7 +36,7 @@ function Basic({ color, base = 1, fade, additive = false, light }: { color: stri
 function makeGlowTexture() {
   const c = typeof document === "undefined" ? new OffscreenCanvas(256, 256) : document.createElement("canvas");
   c.width = c.height = 256;
-  const g = c.getContext("2d");
+  const g = c.getContext("2d") as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
   if (g) {
     const grd = g.createRadialGradient(128, 128, 0, 128, 128, 128);
     grd.addColorStop(0, "rgba(255,255,255,1)");
@@ -217,7 +218,7 @@ function Embers({ fade, light }: { fade: Fade; light: boolean }) {
   );
 }
 
-export function HeroArtwork({ light, pointer }: { light: boolean; pointer?: { x: number; y: number } }) {
+export function HeroArtwork({ light, pointer, layout }: { light: boolean; pointer?: { x: number; y: number }; layout?: { compact: boolean } }) {
   const root = useRef<THREE.Group>(null);
   const rig = useRef<THREE.Group>(null);
   const arrow = useRef<THREE.Group>(null);
@@ -237,7 +238,11 @@ export function HeroArtwork({ light, pointer }: { light: boolean; pointer?: { x:
       mouse.current.y = -((e.clientY / window.innerHeight) * 2 - 1);
     };
     window.addEventListener("pointermove", move, { passive: true });
-    return () => window.removeEventListener("pointermove", move);
+    window.addEventListener("pointerdown", move, { passive: true });
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerdown", move);
+    };
   }, [pointer]);
 
   useFrame((state, dt) => {
@@ -253,8 +258,9 @@ export function HeroArtwork({ light, pointer }: { light: boolean; pointer?: { x:
     if (!g) return;
     g.rotation.y = THREE.MathUtils.damp(g.rotation.y, mx * 0.32, 3, dt);
     g.rotation.x = THREE.MathUtils.damp(g.rotation.x, -my * 0.22, 3, dt);
-    const side = state.viewport.aspect > 1.15 ? state.viewport.width * 0.22 : 0;
-    g.scale.setScalar(state.viewport.aspect > 1.15 ? 0.86 : 1);
+    const compact = layout?.compact ?? (window.innerWidth < 1024 || window.innerWidth <= window.innerHeight);
+    const { side, scale, depthTravel } = heroComposition(state.size.width, state.size.height, state.viewport.width, state.viewport.aspect, compact);
+    g.scale.setScalar(scale);
     g.position.x = THREE.MathUtils.damp(g.position.x, side * (1 - ease) + mx * 0.15, 3, dt);
     g.position.y = THREE.MathUtils.damp(g.position.y, my * 0.1, 3, dt);
 
@@ -262,12 +268,12 @@ export function HeroArtwork({ light, pointer }: { light: boolean; pointer?: { x:
     state.camera.position.z = THREE.MathUtils.lerp(9.5, 8.3, ease);
 
     if (rig.current) {
-      rig.current.position.z = ease * 11; // rings fly through & past the camera
+      rig.current.position.z = ease * 11 * depthTravel; // preserve world-space fly-through after fitting the model
       rig.current.scale.setScalar(1 + ease * 0.8); // …while expanding
       rig.current.rotation.z = t * 0.05 + ease * 1.4;
     }
     if (arrow.current) {
-      arrow.current.position.z = ease * 6.4 + Math.sin(t * 1.1) * 0.06; // flies toward the camera
+      arrow.current.position.z = ease * 6.4 * depthTravel + Math.sin(t * 1.1) * 0.06; // flies toward the camera
       arrow.current.position.y = Math.sin(t * 0.8) * 0.08;
       arrow.current.rotation.z = t * 0.45 + ease * Math.PI * 2;
       arrow.current.scale.setScalar(1.45 + ease * 0.7);

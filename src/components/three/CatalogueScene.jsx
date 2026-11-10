@@ -1,5 +1,7 @@
 "use client";
 
+import { SceneViewport } from "./SceneViewport";
+
 import { ScenePreparation } from "./ScenePreparation";
 import { servicePixelRatio } from "./useGraphics";
 import { SceneCompilation } from "./SceneCompilation";
@@ -439,10 +441,10 @@ function Leaf({
 
 
   const beginDrag = (e) => {
-    if (!active) return;
+    if (!active || drag.current) return;
     e.stopPropagation();
     const native = e.nativeEvent || e;
-    if (native.pointerType === 'touch') return;
+    const touch = native.pointerType === 'touch';
     const startX = native.clientX;
     const startY = native.clientY;
     const uv = e.uv || { x: 0.5, y: 0.5 };
@@ -450,26 +452,36 @@ function Leaf({
     const face = progress.current[index] > 0.5 ? 'back' : 'front';
     const pageIndex = face === 'front' ? frontPage : backPage;
 
-    drag.current = { startX, startY, startAngle: progress.current[index], moved: 0, uv, pageIndex, face };
+    const canvasWidth = e.nativeEvent?.target?.clientWidth || e.target?.clientWidth || 570;
+    drag.current = { startX, startY, startAngle: progress.current[index], moved: 0, uv, pageIndex, face, active: !touch };
     listeners.current = { move: null, up: null };
 
     const move = (ev) => {
-      if (!drag.current) return;
+      if (!drag.current || ev.pointerId !== native.pointerId) return;
+      if (touch && native.target?.dataset?.multiTouch === 'true') { up(ev, true); return; }
       const dx = ev.clientX - drag.current.startX;
       const dy = ev.clientY - drag.current.startY;
       drag.current.moved = Math.max(drag.current.moved, Math.abs(dx), Math.abs(dy));
+      if (touch && !drag.current.active) {
+        if (Math.abs(dy) > 6 && Math.abs(dy) > Math.abs(dx)) { up(ev, true); return; }
+        if (Math.abs(dx) <= 6 || Math.abs(dx) <= Math.abs(dy)) return;
+        drag.current.active = true;
+        interactionRef.current = index;
+        onDragging(true);
+      }
       if (drag.current.moved < 3) return;
       ev.preventDefault();
       // dragging right closes a leaf; dragging left opens it
-      const next = clamp(drag.current.startAngle - dx / 285);
+      const next = clamp(drag.current.startAngle - dx / (touch ? canvasWidth / 2 : 285));
       progress.current[index] = next;
     };
 
-    const up = (ev) => {
+    const up = (ev, cancelled = false) => {
+      if (ev.pointerId !== native.pointerId) return;
       const d = drag.current;
       drag.current = null;
       interactionRef.current = -1;
-      onDragging(false);
+      if (d?.active) onDragging(false);
       onCursor('default');
       if (listeners.current) {
         window.removeEventListener('pointermove', move);
@@ -478,8 +490,8 @@ function Leaf({
         listeners.current = null;
       }
       if (!d) return;
-      if (ev.type === 'pointercancel') {
-        targets.current[index] = index < spread ? 1 : 0;
+      if (cancelled || ev.type === 'pointercancel') {
+        progress.current[index] = d.startAngle;
         return;
       }
 
@@ -521,8 +533,10 @@ function Leaf({
     };
 
     listeners.current = { move, up };
-    interactionRef.current = index;
-    onDragging(true);
+    if (!touch) {
+      interactionRef.current = index;
+      onDragging(true);
+    }
     onCursor('grabbing');
     window.addEventListener('pointermove', move, { passive: false });
     window.addEventListener('pointerup', up);
@@ -1071,6 +1085,7 @@ export default function CatalogueScene({ light = false, renderActive = true }) {
               gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.12 }}
               style={{ position: 'absolute', inset: 0, background: 'transparent', touchAction: coarse ? 'pan-y' : 'none' }}
             >
+            <SceneViewport fov={40} />
               <ambientLight intensity={light ? 1.7 : 1.5} />
               <hemisphereLight args={['#ffe9c4', '#120d08', 0.55]} />
               <directionalLight position={[3.5, 6, 6]} intensity={1.35} color="#fff6ea" />
@@ -1083,7 +1098,7 @@ export default function CatalogueScene({ light = false, renderActive = true }) {
                   spread={state.spread} products={INITIAL_PRODUCTS} textures={assets.pages}
                   interactionRef={interactionRef} onFlip={flip} onPick={pick} onCursor={ignoreCursor}
                   onDragging={onDragging} dragging={state.dragging} stage={state.stage}
-                  gold={gold} cyan={cyan} enableRotate={!coarse}
+                  gold={gold} cyan={cyan} enableRotate
                 />
               )}
               {state.stage === 1 && <DataStream texture={assets.csv} gold={gold} cyan={cyan} />}

@@ -1,5 +1,8 @@
 "use client";
 
+import { SceneViewport } from "./SceneViewport";
+import { ResponsiveOrbitControls as OrbitControls } from "./ResponsiveOrbitControls";
+
 import { ScenePreparation } from "./ScenePreparation";
 import { servicePixelRatio } from "./useGraphics";
 import { SceneCompilation } from "./SceneCompilation";
@@ -12,7 +15,7 @@ import {
 } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { RoundedBox, OrbitControls } from "@react-three/drei";
+import { RoundedBox } from "@react-three/drei";
 
 /* ----------------------------------------------------------------------------
    Shared helpers
@@ -1830,7 +1833,10 @@ export default function AppDevScene({ light = false, renderActive = true }) {
   const onScreenAction = useCallback(() => dispatch({ type: "screen" }), []);
 
   return (
-    <div className="absolute inset-0" onPointerDownCapture={() => dispatch({ type: "pause" })}>
+    <div className="absolute inset-0"
+      onPointerDownCapture={(event) => { if (event.pointerType !== "touch" || !event.isPrimary) dispatch({ type: "pause" }); }}
+      onClickCapture={(event) => { if (event.nativeEvent.pointerType === "touch") dispatch({ type: "pause" }); }}
+    >
       <ScenePreparation name="app">
         {(onPrepared) => (
           <Canvas
@@ -1840,8 +1846,9 @@ export default function AppDevScene({ light = false, renderActive = true }) {
             camera={{ position: [0, 0, 8.45], fov: 44 }}
             style={{ position: "absolute", inset: 0, background: "transparent", touchAction: isTouch ? "pan-y" : "none" }}
           >
+            <SceneViewport fov={44} />
             <SceneRoot
-              state={state} gold={gold} cyan={cyan} enableRotate={!isTouch}
+              state={state} gold={gold} cyan={cyan} enableRotate
               onIconClick={onIconClick} onToggleOnline={onToggleOnline} onScreenAction={onScreenAction}
             />
             <SceneCompilation />

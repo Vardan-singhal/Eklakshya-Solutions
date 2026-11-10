@@ -10,7 +10,7 @@ function bridge() {
   const effects = [], refs = [], updates = [], workers = [], frames = new Map(), listeners = new Map(), marks = [];
   let index = 0, ready, rendered = 0, cancelledReady = false;
   const engine = { ready: false, heroProgress: 0 };
-  const host = { clientWidth: 1440, clientHeight: 900, appendChild(canvas) { this.canvas = canvas; } };
+  const host = { clientWidth: 1440, clientHeight: 900, visual: { dataset: {} }, closest() { return this.visual; }, appendChild(canvas) { this.canvas = canvas; } };
   class Canvas {
     style = {};
     attributes = {};
@@ -84,11 +84,15 @@ test('worker transfers its own canvas and preserves hero size, quality and first
   const init = worker.messages[0];
   assert.equal(init.message.type, 'init');
   assert.equal(init.transfer[0], h.host.canvas.offscreen);
-  assert.deepEqual(init.message.size, { width: 1440, height: 900, dpr: 1.5 });
+  assert.deepEqual(init.message.size, { width: 1440, height: 900, dpr: 1.5, compact: false });
   assert.equal(h.rendered(), 0);
   worker.receive('ready');
   assert.equal(h.rendered(), 1);
   assert.ok(h.marks.includes('hero:worker-ready'));
+  worker.receive('loading');
+  assert.equal(h.host.visual.dataset.sceneState, 'loading');
+  worker.receive('ready');
+  assert.equal(h.host.visual.dataset.sceneState, 'ready');
   h.ready();
   assert.equal(worker.messages.at(-1).message.controls.released, true);
   h.controls({ active: false, light: true });
@@ -109,6 +113,13 @@ test('worker receives pointer/scroll input, resize and monitor pixel-density cha
   h.host.clientWidth = 1200;
   h.resize();
   assert.equal(worker.messages.at(-1).message.size.width, 1200);
+  h.window.innerWidth = 1024;
+  h.window.innerHeight = 1366;
+  h.resize();
+  assert.equal(worker.messages.at(-1).message.size.compact, true);
+  h.window.innerHeight = 768;
+  h.resize();
+  assert.equal(worker.messages.at(-1).message.size.compact, false);
   h.window.devicePixelRatio = 1;
   h.density().callback();
   assert.equal(worker.messages.at(-1).message.size.dpr, 1);
@@ -133,4 +144,6 @@ test('worker failure selects the original renderer and preserves the loader paus
   assert.equal(heroFrameLoop({ active: true, released: false }, true), 'never');
   assert.equal(heroFrameLoop({ active: true, released: true }, true), 'always');
   assert.equal(heroFrameLoop({ active: false, released: true }, true), 'never');
+  assert.equal(heroFrameLoop({ active: false, released: false }, false), 'always');
+  assert.equal(heroFrameLoop({ active: false, released: true }, false), 'always');
 });

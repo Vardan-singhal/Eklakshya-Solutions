@@ -1,5 +1,5 @@
-import { Suspense, useRef } from "react";
-import { createRoot, extend, useFrame, type RootState } from "@react-three/fiber";
+import { Suspense, useEffect, useRef } from "react";
+import { createRoot, extend, useFrame, useThree, type RootState } from "@react-three/fiber";
 import * as THREE from "three";
 import { engine } from "@/lib/engine";
 import { HeroArtwork } from "./HeroArtwork";
@@ -24,13 +24,40 @@ let size: HeroSize;
 let controls: HeroControls = { active: false, light: false, released: false };
 let drawn = false;
 const pointer = { x: 0, y: 0 };
+const layout = { compact: false };
 
 function FirstFrame() {
   const notified = useRef(false);
+  const lost = useRef(false);
+  const frame = useRef(0);
+  const { gl } = useThree();
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const onLost = (event: Event) => {
+      event.preventDefault();
+      lost.current = true;
+      notified.current = false;
+      drawn = false;
+      self.postMessage({ type: "loading" });
+    };
+    const onRestored = () => {
+      lost.current = false;
+      gl.info.reset();
+      store?.getState().setFrameloop(heroFrameLoop(controls, drawn));
+    };
+    canvas.addEventListener("webglcontextlost", onLost);
+    canvas.addEventListener("webglcontextrestored", onRestored);
+    return () => {
+      cancelAnimationFrame(frame.current);
+      canvas.removeEventListener("webglcontextlost", onLost);
+      canvas.removeEventListener("webglcontextrestored", onRestored);
+    };
+  }, [gl]);
   useFrame(({ gl }) => {
-    if (notified.current || gl.info.render.calls === 0) return;
+    if (lost.current || notified.current || gl.info.render.calls === 0) return;
     notified.current = true;
-    requestAnimationFrame(() => {
+    frame.current = requestAnimationFrame(() => {
+      if (lost.current) return;
       drawn = true;
       store?.getState().setFrameloop(heroFrameLoop(controls, drawn));
       self.postMessage({ type: "ready" });
@@ -43,7 +70,7 @@ function render() {
   if (!root) return;
   store = root.render(
     <Suspense fallback={null}>
-      <HeroArtwork light={controls.light} pointer={pointer} />
+      <HeroArtwork light={controls.light} pointer={pointer} layout={layout} />
       <SceneCompilation />
       <FirstFrame />
     </Suspense>,
@@ -51,6 +78,7 @@ function render() {
 }
 
 async function configure() {
+  layout.compact = Boolean(size.compact);
   await root?.configure({
     size: { width: size.width, height: size.height, top: 0, left: 0 },
     dpr: size.dpr,

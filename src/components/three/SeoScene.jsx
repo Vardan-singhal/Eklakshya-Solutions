@@ -1,5 +1,8 @@
 "use client";
 
+import { SceneViewport } from "./SceneViewport";
+import { ResponsiveOrbitControls as OrbitControls } from "./ResponsiveOrbitControls";
+
 import { ScenePreparation } from "./ScenePreparation";
 import { servicePixelRatio } from "./useGraphics";
 import { SceneCompilation } from "./SceneCompilation";
@@ -10,7 +13,6 @@ import { SceneWarmup } from "./SceneWarmup";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useReducer, useSyncExternalStore } from 'react'
 import * as THREE from 'three'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
 
 /* Five procedural models share one small timelineRef; no downloaded assets or fonts. */
 const GOLD = '#f5c451'
@@ -966,8 +968,9 @@ export default function SeoScene({ light = false, renderActive = true }) {
             camera={{ position: [0, 0, 9], fov: 35, near: 0.1, far: 40 }}
             style={{ position: 'absolute', inset: 0, background: 'transparent', touchAction: coarse ? 'pan-y' : 'none' }}
           >
+            <SceneViewport fov={35} />
             <Timeline timelineRef={timelineRef} playing={state.playing && !reduced} advance={advance} />
-            {!coarse && <ReturningOrbit onManual={pause} />}
+            <ReturningOrbit onManual={pause} />
             <World timelineRef={timelineRef}>
               <DemandModel timelineRef={timelineRef} data={data} active={state.stage === 0} gold={gold} cyan={cyan} />
               <AuditModel timelineRef={timelineRef} fixed={state.fixed} active={state.stage === 1} gold={gold} cyan={cyan} />

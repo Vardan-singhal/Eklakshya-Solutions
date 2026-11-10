@@ -34,7 +34,9 @@ export function Footer({ services }: { services: FooterLink[] }) {
     const el = ref.current;
     if (!el) return;
     const mm = gsap.matchMedia();
-    mm.add("(min-width: 1024px) and (min-height: 840px) and (prefers-reduced-motion: no-preference)", () => {
+    mm.add({ desktop: "(min-width: 1024px) and (min-height: 840px)", motion: "(prefers-reduced-motion: no-preference)" }, (context) => {
+      if (!context.conditions?.motion) return;
+      const desktop = context.conditions.desktop;
       const words = el.querySelectorAll("[data-fw]");
       const fades = el.querySelectorAll("[data-ff]");
       const set = () => {
@@ -43,8 +45,8 @@ export function Footer({ services }: { services: FooterLink[] }) {
       };
       set();
       const st = ScrollTrigger.create({
-        trigger: document.querySelector("main"),
-        start: "bottom bottom+=520",
+        trigger: desktop ? document.querySelector("main") : el,
+        start: desktop ? "bottom bottom+=520" : "top 85%",
         onEnter: () => {
           gsap.to(words, { yPercent: 0, rotate: 0, duration: 1.2, stagger: 0.09, ease: "expo.out" });
           gsap.to(fades, { opacity: 1, y: 0, duration: 1, stagger: 0.08, delay: 0.3, ease: "power3.out" });

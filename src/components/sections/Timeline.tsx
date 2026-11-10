@@ -28,14 +28,13 @@ export function Timeline({ steps }: { steps: Step[] }) {
     let off = () => {};
     const ctx = gsap.context((self) => {
       const prepare = self.add("prepare", () => {
-        media.add({ mobile: "(max-width: 767px)", desktop: "(min-width: 768px)" }, (context) => {
-          const isMobile = context.conditions?.mobile;
+        media.add({ mobile: "(max-width: 767px)", desktop: "(min-width: 768px)" }, () => {
           gsap.fromTo(line.current, { scaleY: 0 }, { scaleY: 1, ease: "none", scrollTrigger: { trigger: el, start: "top 70%", end: "bottom 65%", scrub: SCROLL_MOTION.scrub } });
           el.querySelectorAll<HTMLElement>("[data-step]").forEach((s, i) => {
             const dir = i % 2 === 0 ? -1 : 1;
             const dot = s.querySelector<HTMLElement>("[data-step-dot]");
-            const initialVars = isMobile ? { opacity: 0, y: 32 } : { opacity: 0, x: 60 * dir };
-            const targetVars = isMobile ? { opacity: 1, y: 0 } : { opacity: 1, x: 0 };
+            const initialVars = { opacity: 0, x: Math.min(60, el.clientWidth * 0.12) * dir };
+            const targetVars = { opacity: 1, x: 0 };
             gsap.fromTo(
               s.querySelector("[data-step-body]"),
               initialVars,

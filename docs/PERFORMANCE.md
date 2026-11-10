@@ -1,6 +1,6 @@
 # UI, animation and performance verification
 
-> Current-build notice: see [DESKTOP-PERFORMANCE-2026-11-10.md](DESKTOP-PERFORMANCE-2026-11-10.md) for the current worker renderer, measurements and verification limits. The scores below are historical and do not describe the current build.
+> Current-build notice: see [RESPONSIVE-3D-PARITY-2026-11-10.md](RESPONSIVE-3D-PARITY-2026-11-10.md) for responsive rendering and verification limits. Desktop performance work is recorded in [DESKTOP-PERFORMANCE-2026-11-10.md](DESKTOP-PERFORMANCE-2026-11-10.md). All scores and mobile fallback descriptions below are historical and do not describe the current build.
 
 Measured on 3 November 2026 against a local Next.js production build using Lighthouse 13.6.0 and installed Chrome in headless mode. Mobile uses Lighthouse's default mobile profile; desktop uses its desktop preset. Default simulated throttling was retained.
 

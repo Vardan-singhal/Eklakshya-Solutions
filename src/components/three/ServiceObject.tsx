@@ -1,5 +1,7 @@
 "use client";
 
+import { SceneViewport } from "./SceneViewport";
+
 import { ScenePreparation } from "./ScenePreparation";
 import { servicePixelRatio } from "./useGraphics";
 import { SceneCompilation } from "./SceneCompilation";
@@ -285,6 +287,7 @@ export default function ServiceObject({ kind, light, renderActive = true }: { ki
           gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
           style={{ position: "absolute", inset: 0 }}
         >
+            <SceneViewport fov={40} />
           <Suspense fallback={null}>
             <ambientLight intensity={light ? 0.9 : 0.45} />
             <pointLight position={[3, 3, 4]} intensity={50} color={C.ember} distance={16} decay={2} />

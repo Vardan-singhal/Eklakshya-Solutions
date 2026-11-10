@@ -3,7 +3,7 @@
 import { useEffect, useRef, type ElementType, type ReactNode } from "react";
 import { SCROLL_MOTION } from "@/lib/motionSettings";
 import { gsap, ScrollTrigger, requestScrollRefresh } from "@/lib/gsap";
-import { engine, isFinePointer, isReducedMotion, observeEntrance, observeReadyEntrance, onReady, useIsoLayoutEffect } from "@/lib/engine";
+import { engine, isReducedMotion, observeEntrance, observeReadyEntrance, onReady, useIsoLayoutEffect } from "@/lib/engine";
 import { cn } from "@/lib/utils";
 
 /** Fade-and-rise. With `stagger`, animates the element's children instead of the element. */
@@ -188,7 +188,7 @@ export function ScrollSkew({ children, className = "", strength = 1 }: { childre
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = ref.current;
-    if (!el || isReducedMotion() || !isFinePointer()) return;
+    if (!el || isReducedMotion()) return;
     const set = gsap.quickSetter(el, "skewY", "deg") as (v: number) => void;
     let cur = 0;
     let visible = false;

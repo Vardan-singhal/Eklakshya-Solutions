@@ -26,14 +26,14 @@ export function Cursor() {
   const activeDialog = useSyncExternalStore(subscribeToDialogs, getOpenDialog, getServerDialog);
 
   useEffect(() => {
-    if (!isFinePointer()) return;
+    const fine = isFinePointer();
     const r = ring.current;
     const d = dot.current;
     const lt = labelText.current;
     if (!r || !d || !lt) return;
 
     const html = document.documentElement;
-    html.classList.add("has-cursor");
+    if (fine) html.classList.add("has-cursor");
 
     const pos = { ...(lastPosition.current ?? { x: -100, y: -100 }) };
     const rpos = { ...pos };
@@ -79,13 +79,15 @@ export function Cursor() {
       else if (t?.closest?.("a,button,[role='button'],summary,label")) setState("link");
       else setState("idle");
     };
-    const onDown = () => {
+    const onDown = (event: PointerEvent) => {
+      if (event.pointerType === "touch") onMove(event);
       pressed = true;
       if (state !== "label") setState("down");
     };
-    const onUp = () => {
+    const onUp = (event: PointerEvent) => {
       pressed = false;
       if (state === "down") setState("idle");
+      if (!fine || event.pointerType === "touch") onLeave();
     };
     const onLeave = () => {
       shown = false;
@@ -106,6 +108,7 @@ export function Cursor() {
     window.addEventListener("pointermove", onMove, { passive: true });
     window.addEventListener("pointerdown", onDown);
     window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
     document.documentElement.addEventListener("mouseleave", onLeave);
 
     return () => {
@@ -113,6 +116,7 @@ export function Cursor() {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerdown", onDown);
       window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
       document.documentElement.removeEventListener("mouseleave", onLeave);
       html.classList.remove("has-cursor");
     };

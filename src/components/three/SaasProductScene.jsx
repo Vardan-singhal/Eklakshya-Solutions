@@ -1,5 +1,8 @@
 "use client";
 
+import { SceneViewport } from "./SceneViewport";
+import { ResponsiveOrbitControls as OrbitControls } from "./ResponsiveOrbitControls";
+
 import { ScenePreparation } from "./ScenePreparation";
 import { servicePixelRatio } from "./useGraphics";
 import { SceneCompilation } from "./SceneCompilation";
@@ -18,7 +21,7 @@ import React, {
 } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, RoundedBox } from "@react-three/drei";
+import { RoundedBox } from "@react-three/drei";
 
 /* ------------------------------------------------------------------
    SAAS PRODUCT SCENE — "The SaaS Loop"
@@ -1879,12 +1882,13 @@ export default function SaasProductScene({ light = false, renderActive = true })
             onPointerMissed={() => dispatch({ type: 'clear' })}
             style={{ position: 'absolute', inset: 0, background: 'transparent', touchAction: coarse ? 'pan-y' : 'none' }}
           >
+            <SceneViewport fov={38} />
             <Ticker clockRef={clockRef} stage={state.stage} stageStartRef={stageStartRef} />
             <TimelineContext.Provider value={clockRef}>
               <SceneContent
                 stage={state.stage} plan={state.plan} gold={gold} cyan={cyan}
                 focusId={state.focus} setFocus={openTenant} onSelectPlan={selectPlan}
-                onUserInteract={pause} controlsRef={controlsRef} enableRotate={!coarse}
+                onUserInteract={pause} controlsRef={controlsRef} enableRotate
               />
             </TimelineContext.Provider>
             <SceneCompilation />

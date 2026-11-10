@@ -3,12 +3,12 @@
 import { Component, type ReactNode } from "react";
 
 /** Falls back to static content if a WebGL scene throws (context lost, GPU blocklist, …). */
-export class Boundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
+export class Boundary extends Component<{ fallback: ReactNode; children: ReactNode; onError?: () => void }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() {
     return { failed: true };
   }
-  componentDidCatch() {}
+  componentDidCatch() { this.props.onError?.(); }
   render() {
     return this.state.failed ? this.props.fallback : this.props.children;
   }

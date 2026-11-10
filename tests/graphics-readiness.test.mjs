@@ -16,7 +16,7 @@ function load(file, require, globals = {}) {
   return exports;
 }
 
-function graphics({ memory = 8, width = 1280 } = {}) {
+function graphics({ memory = 8, width = 1280, webgl = true } = {}) {
   const effects = [], updates = [], frames = [], observers = [];
   const events = new Map();
   let probes = 0;
@@ -28,7 +28,7 @@ function graphics({ memory = 8, width = 1280 } = {}) {
     addEventListener: (type, callback) => events.set(type, callback),
     removeEventListener: (type) => events.delete(type),
   };
-  const document = { hidden: false, addEventListener: (type, callback) => events.set(type, callback), removeEventListener: (type) => events.delete(type), createElement: () => ({ getContext: () => { probes++; return { getExtension: () => null }; } }) };
+  const document = { hidden: false, addEventListener: (type, callback) => events.set(type, callback), removeEventListener: (type) => events.delete(type), createElement: () => ({ getContext: () => { probes++; return webgl ? { getExtension: () => null } : null; } }) };
   const api = load('../src/components/three/useGraphics.ts', (id) => {
     if (id === '@/lib/modelVisibility') return { observeStackOcclusion: (_el, _interested, callback) => { onCovered = callback; return () => {}; } };
     assert.equal(id, 'react');
@@ -60,7 +60,7 @@ function graphics({ memory = 8, width = 1280 } = {}) {
 
 test('service graphics capability resolves before any user interaction', () => {
   const h = graphics();
-  h.api.useCanRender3D(768);
+  h.api.useCanRender3D();
   h.effects(); h.flush();
   assert.deepEqual(h.updates, [true]);
   assert.equal(h.events.size, 0);
@@ -81,22 +81,22 @@ test('service renderers retain their models across visibility changes', () => {
     assert.equal(id, './useGraphics');
     return {
       useSceneProximity: () => true,
-      useCanRender3D(minWidth, onInteraction) { assert.equal(minWidth, 768); assert.notEqual(onInteraction, true); return true; },
+      useCanRender3D(...args) { assert.equal(args.length, 0); return true; },
       useInView: () => [{ current: null }, active],
     };
   });
   for (const kind of kinds) {
     active = false;
-    const before = api.ServiceVisual({ kind }).props.children[1];
+    const before = api.ServiceVisual({ kind }).props.children.find(child => child?.type === Boundary);
     assert.equal(before.type, Boundary, kind + ' must mount before viewport entry');
     assert.ok(scenes.includes(before.props.children.type));
     assert.equal(before.props.children.props.renderActive, false);
     active = true;
-    const visible = api.ServiceVisual({ kind }).props.children[1];
+    const visible = api.ServiceVisual({ kind }).props.children.find(child => child?.type === Boundary);
     assert.equal(visible.props.children.type, before.props.children.type);
     assert.equal(visible.props.children.props.renderActive, true);
     active = false;
-    const after = api.ServiceVisual({ kind }).props.children[1];
+    const after = api.ServiceVisual({ kind }).props.children.find(child => child?.type === Boundary);
     assert.equal(after.props.children.type, before.props.children.type, kind + ' must keep its renderer after leaving');
   }
 });
@@ -151,35 +151,37 @@ test('occlusion requires full coverage including clearance for rounded corners',
   assert.equal(coversModel(model, { top: 0, bottom: 500, left: 610, right: 1000 }), false);
 });
 
-test('low-memory devices retain the graphics fallback without probing WebGL', () => {
-  const h = graphics({ memory: 2 });
-  h.api.useCanRender3D(768);
-  h.effects(); h.flush();
-  assert.equal(h.probes(), 0);
-  assert.equal(h.updates.length, 0);
+test('all target widths initialize real WebGL even on devices with low memory estimates', () => {
+  for (const width of [320, 360, 390, 430, 600, 768, 1024, 1280, 1440, 1920]) {
+    const h = graphics({ width, memory: 2 });
+    h.api.useCanRender3D();
+    h.effects(); h.flush();
+    assert.equal(h.probes(), 1, String(width));
+    assert.deepEqual(h.updates, [true]);
+    assert.equal(h.events.size, 0);
+  }
 });
 
-test('hero interaction gating remains available independently of service loading', () => {
-  const h = graphics();
-  h.api.useCanRender3D(900, true);
+test('fallback is selected only when the actual renderer context is unavailable', () => {
+  const h = graphics({ width: 320, webgl: false });
+  const decisions = [];
+  h.api.useCanRender3D(value => decisions.push(value));
   h.effects(); h.flush();
-  assert.equal(h.updates.length, 0);
-  h.events.get('wheel')({ type: 'wheel' });
-  h.flush();
-  assert.deepEqual(h.updates, [true]);
+  assert.deepEqual(h.updates, [false]);
+  assert.deepEqual(decisions, [false]);
 });
 
 test('the hero can start before input and report a final capability decision', () => {
   const h = graphics();
   const decisions = [];
-  h.api.useCanRender3D(900, false, value => decisions.push(value));
+  h.api.useCanRender3D(value => decisions.push(value));
   h.effects(); h.flush();
   assert.deepEqual(decisions, [true]);
   assert.equal(h.events.size, 0);
   const mobile = graphics({ width: 390 });
-  mobile.api.useCanRender3D(900, false, value => decisions.push(value));
+  mobile.api.useCanRender3D(value => decisions.push(value));
   mobile.effects(); mobile.flush();
-  assert.deepEqual(decisions, [true, false]);
+  assert.deepEqual(decisions, [true, true]);
 });
 
 function heroLatch() {
@@ -208,7 +210,7 @@ test('loader readiness waits for a rendered hero, including an already rendered 
   assert.equal(h.pending(), 0);
 });
 
-test('unsupported devices and timed-out renderers choose a stable fallback', async () => {
+test('unsupported devices fall back while slow supported renderers remain live after the loader', async () => {
   const h = heroLatch();
   const wait = h.latch.wait();
   h.latch.resolveCapability(false);
@@ -217,8 +219,9 @@ test('unsupported devices and timed-out renderers choose a stable fallback', asy
   const slow = heroLatch();
   const timeout = slow.latch.wait();
   slow.expire(); await timeout.promise;
+  assert.equal(slow.latch.getSnapshot(), 'pending');
   slow.latch.rendered();
-  assert.equal(slow.latch.getSnapshot(), 'fallback', 'a late GPU result cannot pop in after the loader');
+  assert.equal(slow.latch.getSnapshot(), 'rendered', 'slow initialization must not disable a supported renderer');
 });
 
 test('cancelled loader waits unsubscribe without abandoning a live hero', async () => {

@@ -25,16 +25,17 @@ export function HomeHero() {
     const pinEl = pin.current;
     if (!pinEl) return;
     const mm = gsap.matchMedia();
-    mm.add("(min-width: 1024px) and (prefers-reduced-motion: no-preference)", () => {
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
       const tl = gsap.timeline({
         defaults: { ease: "none" },
         scrollTrigger: {
           trigger: pinEl,
-          start: "top top",
+          start: () => (window.innerWidth >= 1024 && window.innerWidth > window.innerHeight) || pinEl.offsetHeight <= window.innerHeight ? "top top" : "bottom bottom",
           end: "+=170%",
           pin: true,
           scrub: SCROLL_MOTION.scrub,
           anticipatePin: 1,
+          invalidateOnRefresh: true,
         },
       });
       tl.to(text.current, { yPercent: -24, opacity: 0, duration: 0.35 }, 0)
@@ -54,20 +55,17 @@ export function HomeHero() {
 
   return (
     <section id="top" data-section="Intro" aria-label="Introduction">
-      <div ref={pin} className="relative h-[100svh] min-h-[580px] sm:min-h-[680px] w-full overflow-hidden">
+      <div ref={pin} className="hero-stage relative h-[100svh] min-h-[580px] sm:min-h-[680px] w-full overflow-hidden">
         <Hero3D />
 
         {/* readability veil behind the headline */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0"
+          className="hero-readability-veil pointer-events-none absolute inset-0"
           style={{ background: "radial-gradient(ellipse 70% 85% at 22% 58%, var(--c-bg) 0%, transparent 72%)", opacity: 0.92 }}
         />
 
-        {/* mobile: fade the artwork out behind the copy so the paragraph stays legible */}
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[80%] bg-gradient-to-t from-bg via-bg/90 to-transparent lg:hidden" />
-
-        <div className="container-x relative z-10 flex h-full items-end pb-16 pt-24 sm:pb-24 sm:pt-32 lg:items-center lg:pb-0 lg:pt-0">
+        <div className="hero-copy container-x relative z-10 flex h-full items-end pb-16 pt-24 sm:pb-24 sm:pt-32 lg:items-center lg:pb-0 lg:pt-0">
           <div ref={text} className="max-w-[58rem]">
             <SplitText
               as="h1"
@@ -95,8 +93,8 @@ export function HomeHero() {
         </div>
 
         {/* HUD */}
-        <div ref={hud} aria-hidden className="pointer-events-none absolute inset-0 z-10 hidden lg:block">
-          <div className="absolute right-10 top-28 text-right font-mono text-[10px] uppercase leading-relaxed tracking-[0.25em] text-muted">
+        <div ref={hud} aria-hidden className="hero-hud pointer-events-none absolute inset-0 z-10 block">
+          <div className="hero-hud-coordinates absolute right-10 top-28 text-right font-mono text-[10px] uppercase leading-relaxed tracking-[0.25em] text-muted">
             <p>Lat 23.0225° N · Lon 72.5714° E</p>
             <p className="text-accent">Target lock · acquired</p>
           </div>

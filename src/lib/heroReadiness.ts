@@ -4,8 +4,8 @@ type HeroStatus = "pending" | "rendered" | "fallback";
 export function createHeroReadiness() {
   let status: HeroStatus = "pending";
   const listeners = new Set<() => void>();
-  const settle = (next: Exclude<HeroStatus, "pending">) => {
-    if (status !== "pending") return;
+  const settle = (next: Exclude<HeroStatus, "pending">, failed = false) => {
+    if (status === next || (status !== "pending" && !failed)) return;
     status = next;
     listeners.forEach((listener) => listener());
   };
@@ -18,7 +18,7 @@ export function createHeroReadiness() {
     getSnapshot: () => status,
     getServerSnapshot: (): HeroStatus => "pending",
     rendered: () => settle("rendered"),
-    fallback: () => settle("fallback"),
+    fallback: () => settle("fallback", true),
     resolveCapability: (capable: boolean) => { if (!capable) settle("fallback"); },
     wait(timeoutMs = 6000) {
       let cancel = () => {};
@@ -28,7 +28,8 @@ export function createHeroReadiness() {
         const off = subscribe(() => { if (status !== "pending") finish(); });
         cancel = finish;
         if (status !== "pending") finish();
-        else timer = setTimeout(() => settle("fallback"), timeoutMs);
+        // A slow GPU may release the loader, but it must not lose the live scene.
+        else timer = setTimeout(finish, timeoutMs);
       });
       return { promise, cancel: () => cancel() };
     },

@@ -10,6 +10,7 @@ import { SITE } from "@/lib/site";
 import type { CatalogueItem } from "@/data/siteData";
 import { TargetLogo } from "@/components/ui/brand";
 import { buildCataloguePages, type CataloguePageData } from "@/lib/cataloguePages";
+import { horizontalGesture } from "@/lib/responsiveScene";
 
 /** One printed page. Sizes use container-query units so it scales with the book. */
 function Face({ page, side, index, eager = false }: { page: CataloguePageData; side: "l" | "r"; index: number; eager?: boolean }) {
@@ -166,14 +167,15 @@ export function FlipBook({
   const leaves = useRef<(HTMLDivElement | null)[]>([]);
   const label = useRef<HTMLSpanElement>(null);
   const api = useRef<{ go: (dir: 1 | -1) => void }>({ go: () => {} });
+  const touch = useRef<{ x: number; y: number } | null>(null);
 
   useIsoLayoutEffect(() => {
     const bookEl = book.current;
     const stageEl = stage.current;
     if (!bookEl || !stageEl) return;
-    // Mobile uses the swipe rail; only prepare the 3D book at its visible breakpoint.
+    // Bind the same page-turn rig at every responsive size.
     const viewport = gsap.matchMedia();
-    viewport.add("(min-width: 768px)", () => {
+    viewport.add("(min-width: 0px)", () => {
       const leafEls = leaves.current.filter(Boolean) as HTMLDivElement[];
       const n = leafEls.length;
       const shades = leafEls.map((l) => Array.from(l.querySelectorAll<HTMLElement>("[data-shade]")));
@@ -222,7 +224,7 @@ export function FlipBook({
         // The hero and project rail insert pin spacing before this preview.
         // Wait until the page is ready, then bind the page turns to the final layout.
         offReady = onReady(() => {
-          mm.add("(min-width: 768px)", () => {
+          mm.add("(min-width: 0px)", () => {
             const tween = gsap.fromTo(state, { p: 0 }, {
               p: 1,
               ease: "none",
@@ -251,7 +253,7 @@ export function FlipBook({
           });
         });
       } else {
-        mm.add("(min-width: 1024px)", () => {
+        mm.add("(min-width: 0px)", () => {
           const tween = gsap.fromTo(state, { p: 0 }, {
             p: 1,
             ease: "none",
@@ -288,16 +290,33 @@ export function FlipBook({
   }, [catalogue.id, variant]);
 
   const bookWidth =
-    variant === "pinned" ? "min(94vw, calc(min(66vh, 620px) * 1.5))" : "min(100%, 760px)";
+    variant === "pinned" ? "min(94vw, calc(min(66vh, 620px, var(--flipbook-fit-height, 620px)) * 1.5))" : "min(100%, 760px, calc(var(--flipbook-fit-height, 507px) * 1.5))";
 
   return (
     <div>
       <div
         ref={stage}
-        className={variant === "pinned" ? "relative flex min-h-[100svh] flex-col items-center justify-center gap-8 py-24 lg:py-16" : "relative flex flex-col items-center gap-6 py-6"}
+        id={variant === "pinned" ? "catalogue-book" : "catalogue-preview-book"}
+        data-book-variant={variant}
+        className={variant === "pinned" ? "flipbook-stage relative flex min-h-[100svh] flex-col items-center justify-center gap-8 py-24 lg:py-16" : "flipbook-stage relative flex flex-col items-center gap-6 py-6"}
       >
-        {/* 3D book (md and up) */}
-        <div className="hidden w-full justify-center [perspective:2600px] md:flex" data-cursor="Flip">
+        {/* Same 3D book and page-turn sequence on every screen. */}
+        <div className="flex w-full justify-center [perspective:2600px]" data-cursor="Flip" style={{ touchAction: "pan-y pinch-zoom" }}
+          onPointerDown={(event) => {
+            if (event.pointerType !== "touch") return;
+            if (!event.isPrimary) { touch.current = null; return; }
+            touch.current = { x: event.clientX, y: event.clientY };
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }}
+          onPointerUp={(event) => {
+            const start = touch.current;
+            touch.current = null;
+            if (!start) return;
+            const direction = horizontalGesture(event.clientX - start.x, event.clientY - start.y);
+            if (direction) api.current.go(direction);
+          }}
+          onPointerCancel={() => { touch.current = null; }}
+        >
           <div ref={book} className="relative aspect-[3/2] [transform-style:preserve-3d]" style={{ width: bookWidth }}>
             <div aria-hidden className="absolute inset-y-0 left-0 w-1/2 rounded-l-xl border border-white/10 bg-[#0d0c0a] shadow-[0_40px_80px_-30px_rgba(0,0,0,0.7)]" />
             <div aria-hidden className="absolute inset-y-0 right-0 w-1/2 rounded-r-xl border border-white/10 bg-[#0d0c0a] shadow-[0_40px_80px_-30px_rgba(0,0,0,0.7)]" />
@@ -320,41 +339,31 @@ export function FlipBook({
           </div>
         </div>
 
-        {/* swipeable pages (below md) */}
-        <div className="-mx-[var(--gutter)] flex w-[calc(100%+calc(2*var(--gutter)))] snap-x snap-mandatory gap-3.5 overflow-x-auto px-[var(--gutter)] pb-4 md:hidden [scrollbar-width:none]" data-cursor="Drag">
-          {pages.map((p, i) => (
-            <div key={i} className="relative aspect-[3/4] w-[75vw] max-w-[290px] shrink-0 snap-center overflow-hidden rounded-xl shadow-2xl">
-              <Face page={p} side="r" index={i} eager={variant === "pinned" && i < 2} />
-            </div>
-          ))}
-        </div>
-        <p className="mt-1 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-muted md:hidden">Swipe to browse pages →</p>
-
         {controls && (
-          <div className="hidden items-center gap-5 md:flex">
+          <div className="flex w-full max-w-[312px] items-center gap-2 max-sm:w-[calc(100%-4.5rem)] max-sm:self-start sm:gap-5">
             <button
               type="button"
               onClick={() => api.current.go(-1)}
               aria-label="Previous page"
-              className="grid h-12 w-12 place-items-center rounded-full border border-line-strong bg-surface/60 backdrop-blur transition-colors hover:border-ember hover:text-accent"
+              className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-line-strong bg-surface/60 backdrop-blur transition-colors hover:border-ember hover:text-accent"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
-            <span aria-live="polite" className="min-w-44 text-center font-mono text-xs uppercase tracking-[0.2em] text-muted">
+            <span aria-live="polite" className="min-w-0 flex-1 text-center font-mono text-xs uppercase tracking-[0.2em] text-muted sm:min-w-44">
               <span ref={label} />
             </span>
             <button
               type="button"
               onClick={() => api.current.go(1)}
               aria-label="Next page"
-              className="grid h-12 w-12 place-items-center rounded-full border border-line-strong bg-surface/60 backdrop-blur transition-colors hover:border-ember hover:text-accent"
+              className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-line-strong bg-surface/60 backdrop-blur transition-colors hover:border-ember hover:text-accent"
             >
               <ChevronRight className="h-5 w-5" />
             </button>
           </div>
         )}
         {controls && variant === "pinned" && (
-          <p className="hidden font-mono text-[10px] uppercase tracking-[0.3em] text-muted lg:block">Scroll to turn pages</p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted">Scroll to turn pages</p>
         )}
       </div>
     </div>

@@ -39,7 +39,7 @@ export function BackgroundField() {
       cv.style.width = `${w}px`;
       cv.style.height = `${h}px`;
       ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const n = w < 768 ? 24 : 58;
+      const n = 58;
       ps = Array.from({ length: n }, () => ({
         x: Math.random() * w,
         y: Math.random() * h,

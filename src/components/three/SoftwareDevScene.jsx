@@ -1,5 +1,8 @@
 "use client";
 
+import { SceneViewport } from "./SceneViewport";
+import { ResponsiveOrbitControls as OrbitControls } from "./ResponsiveOrbitControls";
+
 import { ScenePreparation } from "./ScenePreparation";
 import { servicePixelRatio } from "./useGraphics";
 import { SceneCompilation } from "./SceneCompilation";
@@ -9,7 +12,6 @@ import { SceneWarmup } from "./SceneWarmup";
  * The existing service card supplies the layout, decoration, and fallback. */
 import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useReducer, useSyncExternalStore } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 
 const STAGE_COUNT = 4;
@@ -712,9 +714,10 @@ export default function SoftwareDevScene({ light = false, renderActive = true })
             style={{ position: 'absolute', inset: 0, background: 'transparent', touchAction: coarse ? 'pan-y' : 'none' }}
             onPointerMissed={() => dispatch({ type: 'clear' })}
           >
+            <SceneViewport fov={32} />
             <SceneContents
               stage={state.stage} role={state.role} focus={state.focus} hovered={state.hovered}
-              gold={gold} cyan={cyan} enableRotate={!coarse}
+              gold={gold} cyan={cyan} enableRotate
               onHover={onHover} onSelect={onSelect}
             />
             <SceneCompilation />

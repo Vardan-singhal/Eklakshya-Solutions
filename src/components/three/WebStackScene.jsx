@@ -1,5 +1,8 @@
 "use client";
 
+import { SceneViewport } from "./SceneViewport";
+import { ResponsiveOrbitControls as OrbitControls } from "./ResponsiveOrbitControls";
+
 import { ScenePreparation } from "./ScenePreparation";
 import { servicePixelRatio } from "./useGraphics";
 import { SceneCompilation } from "./SceneCompilation";
@@ -9,7 +12,6 @@ import { SceneWarmup } from "./SceneWarmup";
  * Preview page styling, DOM overlays, and HUD controls stay outside the service card. */
 import { useCallback, useEffect, useMemo, useRef, useReducer, useSyncExternalStore } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 
 /* -------------------------------------------------------------------------- */
@@ -1382,6 +1384,9 @@ export default function WebStackScene({ light = false, renderActive = true }) {
       aria-label="Interactive web development stack visualization"
       onPointerEnter={(event) => { if (event.pointerType !== 'touch') dispatch({ type: 'enter' }); }}
       onPointerLeave={() => dispatch({ type: 'leave' })}
+      onPointerDownCapture={(event) => { if (event.pointerType === 'touch') dispatch({ type: 'enter' }); }}
+      onPointerUpCapture={(event) => { if (event.pointerType === 'touch') dispatch({ type: 'leave' }); }}
+      onPointerCancel={() => dispatch({ type: 'leave' })}
       onKeyDown={(event) => {
         if (event.target !== event.currentTarget) return;
         if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
@@ -1408,10 +1413,11 @@ export default function WebStackScene({ light = false, renderActive = true }) {
             gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
             style={{ position: 'absolute', inset: 0, background: 'transparent', touchAction: coarse ? 'pan-y' : 'none' }}
           >
+            <SceneViewport fov={38} />
             <SceneContent
               gold={gold} cyan={cyan} active={state.active} hovered={state.hovered}
               expanded={state.expanded || (coarse && state.locked)}
-              onHover={onHover} onSelect={onSelect} canRotate={!coarse}
+              onHover={onHover} onSelect={onSelect} canRotate
               enableParallax={!reduced}
             />
             <SceneCompilation />

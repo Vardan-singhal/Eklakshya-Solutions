@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, type ReactNode } from "react";
 import { ArrowUpRight } from "lucide-react";
 import { gsap } from "@/lib/gsap";
-import { isFinePointer, isReducedMotion } from "@/lib/engine";
+import { isReducedMotion } from "@/lib/engine";
 import { cn } from "@/lib/utils";
 
 /** High-rate mice need only one geometry read and update per painted frame. */
@@ -19,13 +19,27 @@ function pointerFrames(el: HTMLElement, move: (event: PointerEvent) => void, lea
     window.cancelAnimationFrame(frame);
     frame = 0;
     leave();
+    delete el.dataset.touching;
   };
+  const onDown = (event: PointerEvent) => {
+    if (event.pointerType !== "touch") return;
+    el.dataset.touching = "true";
+    onMove(event);
+  };
+  const onUp = (event: PointerEvent) => { if (event.pointerType === "touch") onLeave(); };
   el.addEventListener("pointermove", onMove, { passive: true });
   el.addEventListener("pointerleave", onLeave);
+  el.addEventListener("pointerdown", onDown, { passive: true });
+  el.addEventListener("pointerup", onUp, { passive: true });
+  el.addEventListener("pointercancel", onUp, { passive: true });
   return () => {
     window.cancelAnimationFrame(frame);
     el.removeEventListener("pointermove", onMove);
     el.removeEventListener("pointerleave", onLeave);
+    el.removeEventListener("pointerdown", onDown);
+    el.removeEventListener("pointerup", onUp);
+    el.removeEventListener("pointercancel", onUp);
+    delete el.dataset.touching;
   };
 }
 
@@ -34,7 +48,7 @@ export function Magnetic({ children, strength = 0.35, className = "inline-block"
   const ref = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     const el = ref.current;
-    if (!el || !isFinePointer() || isReducedMotion()) return;
+    if (!el || isReducedMotion()) return;
     let xTo: ReturnType<typeof gsap.quickTo> | undefined;
     let yTo: ReturnType<typeof gsap.quickTo> | undefined;
     const move = (e: PointerEvent) => {
@@ -107,10 +121,10 @@ export function Button({
   const inner = (
     <>
       {variant === "primary" && (
-        <span aria-hidden className="absolute inset-0 -translate-x-[101%] bg-fg/20 transition-transform duration-500 ease-out group-hover:translate-x-0" />
+        <span aria-hidden className="absolute inset-0 -translate-x-[101%] bg-fg/20 transition-transform duration-500 ease-out group-hover:translate-x-0 group-active:translate-x-0" />
       )}
       <span className="relative">{children}</span>
-      {icon && <ArrowUpRight className="relative h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden />}
+      {icon && <ArrowUpRight className="relative h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-active:-translate-y-0.5 group-hover:translate-x-0.5 group-active:translate-x-0.5" aria-hidden />}
     </>
   );
 
@@ -142,7 +156,7 @@ export function TiltCard({ children, className = "", max = 7, glare = true }: { 
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = ref.current;
-    if (!el || !isFinePointer() || isReducedMotion()) return;
+    if (!el || isReducedMotion()) return;
     let rx: ReturnType<typeof gsap.quickTo> | undefined;
     let ry: ReturnType<typeof gsap.quickTo> | undefined;
     const move = (e: PointerEvent) => {
@@ -178,7 +192,7 @@ export function TiltCard({ children, className = "", max = 7, glare = true }: { 
       {glare && (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-[inherit] opacity-0 transition-opacity duration-300 group-hover/tilt:opacity-100"
+          className="pointer-events-none absolute inset-0 rounded-[inherit] opacity-0 transition-opacity duration-300 group-hover/tilt:opacity-100 group-data-[touching=true]/tilt:opacity-100"
           style={{ background: "radial-gradient(520px circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,0.10), transparent 45%)" }}
         />
       )}

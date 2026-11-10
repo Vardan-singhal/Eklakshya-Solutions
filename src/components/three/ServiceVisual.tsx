@@ -20,12 +20,12 @@ const SeoScene = dynamic(() => import("./SeoScene"), { ssr: false });
 /**
  * Download service code ahead of viewport entry once graphics capability is known.
  * GPU preparation is queued; renderers remain until the route unmounts.
- * Prepared offscreen models pause; mobile / low-end devices keep their fallback.
+ * Prepared offscreen models pause; every supported device uses the same renderer.
  */
 export function ServiceVisual({ kind, className = "" }: { kind: ServiceKind; className?: string }) {
   const [ref, renderActive] = useInView<HTMLDivElement>("700px", true);
   const prepare = useSceneProximity(ref);
-  const can3D = useCanRender3D(768);
+  const can3D = useCanRender3D();
   const { theme } = useTheme();
   const Icon = SERVICE_ICON[kind];
 
@@ -34,19 +34,21 @@ export function ServiceVisual({ kind, className = "" }: { kind: ServiceKind; cla
       <div className="grid h-24 w-24 place-items-center rounded-3xl border border-line-strong bg-surface-2 text-accent shadow-[0_20px_60px_-20px_var(--c-ember)]">
         <Icon className="h-10 w-10" strokeWidth={1.5} />
       </div>
+      <span role="status" className="absolute inset-x-0 bottom-6 text-center t-small">3D preview unavailable on this device.</span>
     </div>
   );
 
   return (
-    <div ref={ref} className={`relative aspect-square w-full ${className}`} data-service-model={kind} data-render-active={renderActive} data-cursor={can3D ? "Tilt" : undefined}>
+    <div ref={ref} id={`model-${kind}`} className={`scene-viewport relative aspect-square w-full min-w-0 ${className}`} data-service-model={kind} data-render-active={renderActive} data-cursor={can3D ? "Tilt" : undefined}>
       <svg viewBox="0 0 400 400" className="absolute inset-0 h-full w-full" fill="none" aria-hidden>
         <circle cx="200" cy="200" r="190" stroke="var(--c-ember)" strokeOpacity=".35" strokeDasharray="2 9" />
         <circle cx="200" cy="200" r="140" stroke="var(--c-tint)" strokeOpacity=".4" />
         <circle cx="200" cy="200" r="90" stroke="var(--c-ember)" strokeOpacity=".5" strokeDasharray="60 20" className="origin-center animate-spin-slow" />
         <path d="M200 0v70M200 330v70M0 200h70M330 200h70" stroke="var(--c-fg)" strokeOpacity=".18" />
       </svg>
+      {can3D !== false && <p data-scene-loading role="status" className="pointer-events-none absolute inset-0 z-10 grid place-items-center p-6 text-center font-mono text-xs text-muted">Preparing 3D scene…</p>}
       {can3D && prepare ? (
-        <Boundary fallback={fallback}>
+        <Boundary fallback={fallback} onError={() => { if (ref.current) ref.current.dataset.sceneState = "unavailable"; }}>
           {kind === "web" ? (
             <WebStackScene light={theme === "light"} renderActive={renderActive} />
           ) : kind === "app" ? (
@@ -66,7 +68,7 @@ export function ServiceVisual({ kind, className = "" }: { kind: ServiceKind; cla
           )}
         </Boundary>
       ) : (
-        fallback
+        can3D === false ? fallback : null
       )}
     </div>
   );
