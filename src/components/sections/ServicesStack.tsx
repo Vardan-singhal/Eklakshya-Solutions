@@ -5,7 +5,7 @@ import { useRef } from "react";
 import { Check } from "lucide-react";
 import { SCROLL_MOTION } from "@/lib/motionSettings";
 import { gsap } from "@/lib/gsap";
-import { useIsoLayoutEffect } from "@/lib/engine";
+import { observeEntrance, useIsoLayoutEffect } from "@/lib/engine";
 import type { ServiceItem } from "@/data/siteData";
 import { Button, TiltCard } from "@/components/ui/interactive";
 import { Section, SectionHeader } from "@/components/ui/layout";
@@ -24,9 +24,15 @@ export function ServicesStack({ services }: { services: ServiceItem[] }) {
     const stackCards = Array.from(el.querySelectorAll<HTMLElement>("[data-stack-card]"));
     const fitCards = () => {
       const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+      const tops = window.innerWidth >= 1024 ? null : stackCards.map((card, index) =>
+        `${Math.min((6.25 + index * 0.9) * rem, window.innerHeight - card.offsetHeight - 16)}px`
+      );
       stackCards.forEach((card, index) => {
-        if (window.innerWidth >= 1024) card.style.removeProperty("--stack-top");
-        else card.style.setProperty("--stack-top", `${Math.min((6.25 + index * 0.9) * rem, window.innerHeight - card.offsetHeight - 16)}px`);
+        if (!tops) {
+          if (card.style.getPropertyValue("--stack-top")) card.style.removeProperty("--stack-top");
+        } else if (card.style.getPropertyValue("--stack-top") !== tops[index]) {
+          card.style.setProperty("--stack-top", tops[index]);
+        }
       });
     };
     const sizes = new ResizeObserver(fitCards);
@@ -34,7 +40,7 @@ export function ServicesStack({ services }: { services: ServiceItem[] }) {
     window.addEventListener("resize", fitCards);
     fitCards();
     const mm = gsap.matchMedia();
-    mm.add("(prefers-reduced-motion: no-preference)", () => {
+    const stopPreparing = observeEntrance(el, () => mm.add("(prefers-reduced-motion: no-preference)", () => {
       const cards = gsap.utils.toArray<HTMLElement>("[data-stack-card]", el);
       cards.forEach((card, i) => {
         const next = cards[i + 1];
@@ -45,9 +51,10 @@ export function ServicesStack({ services }: { services: ServiceItem[] }) {
         gsap.to(inner, { scale: 0.92, ease: "none", scrollTrigger });
         gsap.to(shade, { opacity: 0.6, ease: "none", scrollTrigger });
       });
-    });
+    }), "top 200%");
     return () => {
       sizes.disconnect();
+      stopPreparing();
       window.removeEventListener("resize", fitCards);
       mm.revert();
       stackCards.forEach((card) => card.style.removeProperty("--stack-top"));

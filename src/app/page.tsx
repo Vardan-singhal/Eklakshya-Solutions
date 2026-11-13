@@ -6,7 +6,7 @@ import { PROCESS, TECH } from "@/data/siteData";
 import { HOME_CATALOGUE } from "@/data/homeCatalogue";
 import { HomeHero } from "@/components/sections/HomeHero";
 import { Manifesto } from "@/components/sections/Manifesto";
-import { ServicesStack } from "@/components/sections/ServicesStack";
+import { DeferredServices } from "@/components/sections/DeferredServices";
 import { ProjectsRail } from "@/components/sections/ProjectsRail";
 import { CatalogueTeaser } from "@/components/sections/CatalogueTeaser";
 import { Timeline } from "@/components/sections/Timeline";
@@ -34,7 +34,7 @@ export default async function HomePage() {
       </section>
 
       <Manifesto />
-      <ServicesStack services={services} />
+      <DeferredServices services={services} />
       <ProjectsRail projects={projects} />
       <CatalogueTeaser catalogue={HOME_CATALOGUE} />
 

@@ -3,6 +3,7 @@ import "./globals.css";
 import localFont from "next/font/local";
 
 import { themeScript } from "@/lib/theme";
+import { initialEntranceScript } from "@/lib/initialEntrance";
 import { SITE } from "@/lib/site";
 import { getServices } from "@/lib/content";
 import { organizationLd, websiteLd } from "@/lib/seo";
@@ -75,9 +76,10 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const services = (await getServices()).slice(0, 5).map((s) => ({ label: s.title, href: `/services#${s.id}` }));
   return (
-    <html lang="en" className={`${displayFont.variable} ${bodyFont.variable} ${monoFont.variable}`} suppressHydrationWarning>
+    <html lang="en" data-initial-entrance="true" className={`is-loading ${displayFont.variable} ${bodyFont.variable} ${monoFont.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script dangerouslySetInnerHTML={{ __html: initialEntranceScript }} />
         <noscript>
           <style>{`.preloader{display:none!important}html.is-loading{overflow:auto}`}</style>
         </noscript>

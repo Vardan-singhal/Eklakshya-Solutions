@@ -432,6 +432,65 @@
 }
 
 /* Film grain overlay */
+/* Initial entrances run from first paint, independently of JS/GPU startup.
+   Route entrances continue to use the ready/curtain-controlled GSAP timelines. */
+@property --loader-progress {
+  syntax: "<integer>";
+  initial-value: 0;
+  inherits: true;
+}
+@counter-style loader-digits {
+  system: numeric;
+  symbols: "0" "1" "2" "3" "4" "5" "6" "7" "8" "9";
+  pad: 3 "0";
+}
+.preloader {
+  --loader-progress: 0;
+  animation: loader-progress 0.4s linear forwards, loader-hide 0s 0.77s forwards;
+}
+.preloader [data-count] { font-size: 0; }
+.preloader [data-count]::after {
+  font-size: 11px;
+  counter-reset: loader-count var(--loader-progress);
+  content: counter(loader-count, loader-digits);
+}
+.preloader [data-bar] { animation: loader-bar 0.4s linear forwards; }
+.preloader [data-logo] { animation: loader-logo 0.3s cubic-bezier(.215,.61,.355,1) both; }
+.preloader [data-brand] { animation: loader-brand 0.25s 0.1s cubic-bezier(.215,.61,.355,1) both; }
+.preloader [data-tag] { animation: loader-tag 0.2s 0.2s cubic-bezier(.215,.61,.355,1) both; }
+.preloader [data-content] { animation: loader-content 0.18s 0.42s cubic-bezier(.55,.055,.675,.19) forwards; }
+.preloader [data-seam] { animation: loader-seam 0.15s 0.47s cubic-bezier(.55,.055,.675,.19) forwards; }
+.preloader [data-panel="top"] { animation: loader-top 0.25s 0.52s cubic-bezier(.77,0,.175,1) forwards; }
+.preloader [data-panel="bottom"] { animation: loader-bottom 0.25s 0.52s cubic-bezier(.77,0,.175,1) forwards; }
+html[data-initial-entrance] .initial-split [data-split] {
+  transform-origin: 0% 100%;
+  animation: initial-split 0.8s cubic-bezier(.16,1,.3,1) both;
+  animation-delay: calc(0.77s + var(--split-delay, 0s));
+}
+html[data-initial-entrance] .initial-reveal {
+  animation: initial-reveal var(--reveal-duration, 1.1s) cubic-bezier(.16,1,.3,1) both;
+  animation-delay: calc(0.77s + var(--reveal-delay, 0s));
+}
+@keyframes loader-progress { 75% { --loader-progress: 90; } to { --loader-progress: 100; } }
+@keyframes loader-bar { 75% { transform: scaleX(.9); } to { transform: scaleX(1); } }
+@keyframes loader-logo { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: scale(1); } }
+@keyframes loader-brand { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes loader-tag { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes loader-content { to { opacity: 0; transform: scale(1.4); } }
+@keyframes loader-seam { to { transform: scaleX(0); } }
+@keyframes loader-top { to { transform: translateY(-100%); } }
+@keyframes loader-bottom { to { transform: translateY(100%); } }
+@keyframes loader-hide { to { visibility: hidden; pointer-events: none; } }
+@keyframes initial-split { from { transform: translateY(118%) rotate(5deg); } to { transform: translateY(0) rotate(0); } }
+@keyframes initial-reveal { from { opacity: .65; transform: translate(var(--reveal-x, 0px), var(--reveal-y, 24px)); } to { opacity: 1; transform: translate(0, 0); } }
+@media (prefers-reduced-motion: reduce) {
+  .preloader [data-logo], .preloader [data-brand], .preloader [data-tag], .preloader [data-seam], .preloader [data-content] { animation: none; }
+  .preloader [data-panel="top"], .preloader [data-panel="bottom"] { animation-delay: 0s; }
+  .preloader { animation-delay: 0s, 0.25s; }
+  html[data-initial-entrance] .initial-split [data-split], html[data-initial-entrance] .initial-reveal { animation-name: initial-fade; animation-duration: 0.5s; animation-delay: 0.25s; }
+}
+@keyframes initial-fade { from { opacity: .65; } to { opacity: 1; } }
+
 .grain {
   position: fixed;
   inset: -20%;

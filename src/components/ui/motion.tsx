@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ElementType, type ReactNode } from "react";
+import { useEffect, useRef, type CSSProperties, type ElementType, type ReactNode } from "react";
 import { SCROLL_MOTION } from "@/lib/motionSettings";
 import { gsap, ScrollTrigger, requestScrollRefresh } from "@/lib/gsap";
 import { engine, isReducedMotion, observeEntrance, observeReadyEntrance, onReady, useIsoLayoutEffect } from "@/lib/engine";
@@ -35,6 +35,7 @@ export function Reveal({
   useIsoLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
+    if (mode === "load" && document.documentElement.hasAttribute("data-initial-entrance")) return;
     const targets = stagger !== undefined ? Array.from(el.children) : [el];
     const reduced = isReducedMotion();
     let off = () => {};
@@ -57,7 +58,7 @@ export function Reveal({
   }, []);
 
   const Tag = as;
-  return <Tag ref={ref} className={cn(className)}>{children}</Tag>;
+  return <Tag ref={ref} className={cn(className, mode === "load" && "initial-reveal")} style={mode === "load" ? { "--reveal-x": `${x}px`, "--reveal-y": `${y}px`, "--reveal-delay": `${delay}s`, "--reveal-duration": `${Math.min(duration, 1.1)}s` } as CSSProperties : undefined}>{children}</Tag>;
 }
 
 /** Number that counts up when it enters the viewport. Final value is server-rendered. */
@@ -68,6 +69,7 @@ export function Counter({
   suffix = "",
   className = "",
   duration = 2.2,
+  formattedValue,
 }: {
   to: number;
   decimals?: number;
@@ -75,10 +77,16 @@ export function Counter({
   suffix?: string;
   className?: string;
   duration?: number;
+  /** The server's final number avoids loading locale data during hydration. */
+  formattedValue?: string;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
-  const fmt = (n: number) =>
-    prefix + n.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) + suffix;
+  let formatter: Intl.NumberFormat | undefined;
+  const fmt = (n: number) => {
+    const number = n === to && formattedValue !== undefined ? formattedValue :
+      (formatter ??= new Intl.NumberFormat("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })).format(n);
+    return prefix + number + suffix;
+  };
 
   useIsoLayoutEffect(() => {
     const el = ref.current;

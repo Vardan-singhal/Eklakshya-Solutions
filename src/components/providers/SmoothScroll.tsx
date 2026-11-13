@@ -14,6 +14,9 @@ export function SmoothScroll() {
   useIsoLayoutEffect(() => {
     let lenis: Lenis | null = null;
     let lastY = window.scrollY;
+    let scrollY = lastY;
+    const trackScroll = () => { scrollY = window.scrollY; };
+    window.addEventListener("scroll", trackScroll, { passive: true });
     let disposed = false;
     let cancelReadyRefresh = () => {};
     const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -34,7 +37,9 @@ export function SmoothScroll() {
       if (document.hidden) return;
       lenis?.raf(time * 1000);
       const frames = Math.max(0.1, Math.min(delta, 64) / (1000 / 60));
-      const y = window.scrollY;
+      // Read position in the scroll event, before animation writes. Reading it
+      // here forces layout after GSAP changes pinned elements on the same tick.
+      const y = scrollY;
       const dy = (y - lastY) / frames;
       lastY = y;
       engine.velocity += (dy - engine.velocity) * (1 - Math.pow(0.88, frames));
@@ -65,9 +70,10 @@ export function SmoothScroll() {
         initialAlignment = false;
       });
     });
-    const onAssetLoad = () => { if (!disposed) requestScrollRefresh(); };
+    const onAssetLoad = () => { if (!disposed && engine.ready) requestScrollRefresh(); };
     const onVisibility = () => {
       lastY = window.scrollY;
+      scrollY = lastY;
       engine.velocity = 0;
       if (!document.hidden) onAssetLoad();
     };
@@ -82,6 +88,7 @@ export function SmoothScroll() {
       cancelReadyRefresh();
       window.clearTimeout(failsafe);
       window.removeEventListener("load", onAssetLoad);
+      window.removeEventListener("scroll", trackScroll);
       document.removeEventListener("visibilitychange", onVisibility);
       preference.removeEventListener("change", configure);
       ScrollTrigger.removeEventListener("refresh", syncDimensions);
@@ -113,8 +120,11 @@ export function SmoothScroll() {
     const sectionNav = document.querySelector<HTMLElement>("[data-section-navigation]");
     const setClearance = () => {
       if (disposed) return;
-      document.documentElement.style.setProperty("--nav-height", `${header?.offsetHeight ?? 80}px`);
-      document.documentElement.style.setProperty("--section-nav-height", `${sectionNav?.offsetHeight ?? 0}px`);
+      const navHeight = `${header?.offsetHeight ?? 80}px`;
+      const sectionHeight = `${sectionNav?.offsetHeight ?? 0}px`;
+      const style = document.documentElement.style;
+      if (style.getPropertyValue("--nav-height") !== navHeight) style.setProperty("--nav-height", navHeight);
+      if (style.getPropertyValue("--section-nav-height") !== sectionHeight) style.setProperty("--section-nav-height", sectionHeight);
     };
     const chrome = new ResizeObserver(setClearance);
     if (header) chrome.observe(header);

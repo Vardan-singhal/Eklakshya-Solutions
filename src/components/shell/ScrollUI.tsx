@@ -37,37 +37,43 @@ export function SectionDots() {
   const [active, setActive] = useState(0);
   const [hidden, setHidden] = useState(false);
 
-  // fade the dots out once the reveal footer is showing
-  useEffect(() => {
-    const main = document.querySelector("main");
-    if (!main) return;
-    const st = ScrollTrigger.create({
-      trigger: main, start: "bottom bottom+=260",
-      onEnter: () => setHidden(true), onLeaveBack: () => setHidden(false),
-      onRefresh: (self) => setHidden(window.scrollY >= self.start),
-    });
-    return () => st.kill();
-  }, [pathname]);
-
   useEffect(() => {
     let triggers: ScrollTrigger[] = [];
-    const offReady = onReady(() => {
-      const nodes = Array.from(document.querySelectorAll<HTMLElement>("[data-section][id]")).filter((node) => node.id && node.dataset.section);
-      setItems(nodes.map((n) => ({ id: n.id, label: n.dataset.section ?? "" })));
-      setActive(0);
-      triggers = nodes.map((n, i) =>
-        ScrollTrigger.create({
-          trigger: n,
-          start: "top 55%",
-          end: "bottom 55%",
-          onToggle: (self) => {
-            if (self.isActive) setActive(i);
-          },
-        })
-      );
-    });
+    const desktop = window.matchMedia("(min-width: 1280px)");
+    let offReady = () => {};
+    const configure = () => {
+      offReady();
+      triggers.forEach((trigger) => trigger.kill());
+      triggers = [];
+      // CSS displays this navigation only at xl; mobile needs no measurements.
+      if (!desktop.matches) { setItems([]); return; }
+      offReady = onReady(() => {
+        const nodes = Array.from(document.querySelectorAll<HTMLElement>("[data-section][id]")).filter((node) => node.id && node.dataset.section);
+        setItems(nodes.map((n) => ({ id: n.id, label: n.dataset.section ?? "" })));
+        setActive(0);
+        triggers = nodes.map((n, i) =>
+          ScrollTrigger.create({
+            trigger: n,
+            start: "top 55%",
+            end: "bottom 55%",
+            onToggle: (self) => {
+              if (self.isActive) setActive(i);
+            },
+          })
+        );
+        const main = document.querySelector("main");
+        if (main) triggers.push(ScrollTrigger.create({
+          trigger: main, start: "bottom bottom+=260",
+          onEnter: () => setHidden(true), onLeaveBack: () => setHidden(false),
+          onRefresh: (self) => setHidden(window.scrollY >= self.start),
+        }));
+      });
+    };
+    configure();
+    desktop.addEventListener("change", configure);
     return () => {
       offReady();
+      desktop.removeEventListener("change", configure);
       triggers.forEach((s) => s.kill());
     };
   }, [pathname]);

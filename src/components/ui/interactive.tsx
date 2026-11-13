@@ -136,7 +136,7 @@ export function Button({
         {inner}
       </a>
     ) : (
-      <Link href={href} className={cls} data-cursor={cursor}>
+      <Link href={href} prefetch={false} className={cls} data-cursor={cursor}>
         {inner}
       </Link>
     );

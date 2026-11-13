@@ -24,7 +24,7 @@ export function Manifesto() {
           <div key={s.label} className="flex flex-col justify-between gap-6 bg-bg/90 p-5 backdrop-blur sm:gap-10 sm:p-8 md:p-10">
             <p className="t-label">{s.label}</p>
             <p className="t-h3 sm:t-h2">
-              <Counter to={s.value} suffix={s.suffix} decimals={s.decimals ?? 0} className="text-gradient" />
+              <Counter to={s.value} suffix={s.suffix} decimals={s.decimals ?? 0} formattedValue={s.value.toLocaleString("en-US", { minimumFractionDigits: s.decimals ?? 0, maximumFractionDigits: s.decimals ?? 0 })} className="text-gradient" />
             </p>
           </div>
         ))}

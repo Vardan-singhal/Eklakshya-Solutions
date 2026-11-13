@@ -29,6 +29,7 @@ export function Hero3D() {
 
   return (
     <div ref={ref} id="hero-model" className="hero-scene-panel absolute inset-0" data-hero-visual data-hero-status={status} data-cursor={can3D && status !== "fallback" ? "Move" : undefined}>
+      {can3D && status === "pending" && <Fallback />}
       {status === "pending" && <p role="status" className="pointer-events-none absolute inset-0 z-10 grid place-items-center text-center font-mono text-xs text-muted">Preparing 3D scene…</p>}
       {status === "rendered" && <p data-context-loading role="status" className="pointer-events-none absolute inset-0 z-10 place-items-center text-center font-mono text-xs text-muted">Restoring 3D scene…</p>}
       {can3D && status !== "fallback" ? (

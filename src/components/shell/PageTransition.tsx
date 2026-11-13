@@ -88,6 +88,7 @@ export function PageTransition({ children }: { children: ReactNode }) {
         return;
       }
       pending.current = url.pathname + url.search + url.hash;
+      document.documentElement.removeAttribute("data-initial-entrance");
       router.prefetch(url.pathname + url.search);
       engine.ready = false;
       engine.velocity = 0;
@@ -118,6 +119,7 @@ export function PageTransition({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (prevPath.current === pathname) return;
+    document.documentElement.removeAttribute("data-initial-entrance");
     prevPath.current = pathname;
     window.clearTimeout(navigationTimer.current);
     const hash = pending.current ? new URL(pending.current, window.location.origin).hash : window.location.hash;

@@ -1,111 +1,40 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TargetLogo } from "@/components/ui/brand";
-import { gsap } from "@/lib/gsap";
-import { engine, isReducedMotion, markReady, useIsoLayoutEffect } from "@/lib/engine";
-import { heroReadiness } from "@/lib/heroReadiness";
+import { engine, markReady } from "@/lib/engine";
 
-/**
- * Page-load preloader: every fresh visit and reload gets a visible 0–100 counter.
- * Once progress, fonts and the hero's first frame are ready, a shutter
- * splits open. It is server-rendered (covers the page from the first byte) and the
- * real content stays in the DOM underneath for crawlers.
- */
+/** CSS runs the counter, branding and split shutter from first paint. */
 export function Preloader() {
   const root = useRef<HTMLDivElement>(null);
   const [gone, setGone] = useState(false);
 
-  useIsoLayoutEffect(() => {
+  useEffect(() => {
     const el = root.current;
     if (!el) return;
-    const reduced = isReducedMotion();
     const html = document.documentElement;
-    engine.ready = false;
-    html.classList.add("is-loading");
-    if ("scrollRestoration" in history) history.scrollRestoration = "manual";
-    window.scrollTo(0, 0);
-    engine.lenis?.stop();
-
-    const all = <T extends Element>(sel: string) => Array.from(el.querySelectorAll<T>(sel));
-    const counter = el.querySelector<HTMLElement>("[data-count]");
-    const bar = el.querySelector<HTMLElement>("[data-bar]");
-    const state = { v: 0 };
-    let cancelled = false;
-    let exitAnimation: gsap.core.Animation | undefined;
-    const timers: number[] = [];
-    const wait = (ms: number) => new Promise<void>((resolve) => {
-      timers.push(window.setTimeout(resolve, ms));
-    });
-
-    const render = () => {
-      if (counter) counter.textContent = String(Math.round(state.v)).padStart(3, "0");
-      if (bar) bar.style.transform = `scaleX(${state.v / 100})`;
-    };
-
     const finish = () => {
-      if (cancelled) return;
       html.classList.remove("is-loading");
-      engine.lenis?.start();
+      if (html.dataset.loaderComplete !== "true") {
+        html.dataset.loaderComplete = "true";
+        performance.mark("preloader:complete");
+      }
+      if (!html.classList.contains("menu-open")) engine.lenis?.start();
       markReady();
-      performance.mark("preloader:complete");
       setGone(true);
     };
-
-    const exit = () => {
-      if (cancelled) return;
-      performance.mark("preloader:exit");
-      if (reduced) {
-        exitAnimation = gsap.to(el, { opacity: 0, duration: 0.25, onComplete: finish });
-        return;
-      }
-      exitAnimation = gsap
-        .timeline({ onComplete: finish })
-        .to(all("[data-content]"), { scale: 1.4, opacity: 0, duration: 0.18, ease: "power3.in" }, 0)
-        .to(all("[data-seam]"), { scaleX: 0, duration: 0.15, ease: "power3.in" }, 0.05)
-        .to(all("[data-panel='top']"), { yPercent: -100, duration: 0.25, ease: "power4.inOut" }, 0.1)
-        .to(all("[data-panel='bottom']"), { yPercent: 100, duration: 0.25, ease: "power4.inOut" }, 0.1);
+    // The head listener can release scrolling before React has hydrated.
+    if (html.dataset.loaderComplete === "true") { finish(); return; }
+    if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+    engine.lenis?.stop();
+    const completed = (event: AnimationEvent) => {
+      if (event.animationName === "loader-bottom") finish();
     };
-
-    const ctx = gsap.context(() => {
-      if (reduced) return;
-      gsap
-        .timeline({ defaults: { ease: "power3.out" } })
-        .from(all("[data-logo]"), { opacity: 0, scale: 0.9, duration: 0.3 }, 0)
-        .from(all("[data-brand]"), { opacity: 0, y: 16, duration: 0.25 }, 0.1)
-        .from(all("[data-tag]"), { opacity: 0, y: 12, duration: 0.2 }, 0.2);
-    }, el);
-
-    // Always show steady progress, including when all assets are cached.
-    render();
-    const fontsReady = (document.fonts?.ready ?? Promise.resolve()).then(() => undefined);
-    const fonts = Promise.race([fontsReady, wait(400)]);
-    const progress = new Promise<void>((resolve) => {
-      gsap.to(state, { v: 90, duration: reduced ? 0 : 0.3, ease: "none", onUpdate: render, onComplete: resolve });
-    });
-
-    // Other routes keep their existing timing. On the homepage, 100% means the
-    // hero has drawn, or its final static fallback has been deliberately selected.
-    const hero = document.querySelector("[data-hero-visual]") ? heroReadiness.wait() : null;
-    Promise.all([progress, fonts, hero?.promise]).then(() => {
-      if (cancelled) return;
-      gsap.to(state, {
-        v: 100,
-        duration: reduced ? 0 : 0.1,
-        ease: "none",
-        onUpdate: render,
-        onComplete: () => { timers.push(window.setTimeout(exit, 20)); },
-      });
-    });
-
+    el.addEventListener("animationend", completed);
+    const timeout = window.setTimeout(finish, 2000);
     return () => {
-      cancelled = true;
-      hero?.cancel();
-      timers.forEach((timer) => window.clearTimeout(timer));
-      gsap.killTweensOf(state);
-      exitAnimation?.revert();
-      ctx.revert();
-      html.classList.remove("is-loading");
+      el.removeEventListener("animationend", completed);
+      window.clearTimeout(timeout);
     };
   }, []);
 

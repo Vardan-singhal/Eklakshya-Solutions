@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useRef } from "react";
 import { ArrowUpRight } from "lucide-react";
 import { SCROLL_MOTION } from "@/lib/motionSettings";
-import { gsap } from "@/lib/gsap";
-import { useIsoLayoutEffect } from "@/lib/engine";
+import { gsap, requestScrollRefresh } from "@/lib/gsap";
+import { observeEntrance, useIsoLayoutEffect } from "@/lib/engine";
 import type { ProjectItem } from "@/data/siteData";
 import { SectionHeader } from "@/components/ui/layout";
 
@@ -47,13 +47,18 @@ export function ProjectsRail({ projects }: { projects: ProjectItem[] }) {
         if (counter.current) counter.current.textContent = String(Math.min(projects.length, Math.floor(progress * projects.length) + 1)).padStart(2, "0");
         if (bar.current) bar.current.style.transform = `scaleX(${progress})`;
       });
-      trackEl.querySelectorAll<HTMLElement>("[data-card]").forEach((card) => {
-        gsap.fromTo(
-          card.querySelector("[data-card-img]"),
-          { xPercent: -9 },
-          { xPercent: 9, ease: "none", scrollTrigger: { trigger: card, containerAnimation: tween, start: "left right", end: "right left", scrub: true } }
-        );
-      });
+      let parallax: gsap.Context | undefined;
+      const stopPreparing = observeEntrance(pinEl, () => {
+        parallax = gsap.context(() => trackEl.querySelectorAll<HTMLElement>("[data-card]").forEach((card) => {
+          gsap.fromTo(
+            card.querySelector("[data-card-img]"),
+            { xPercent: -9 },
+            { xPercent: 9, ease: "none", scrollTrigger: { trigger: card, containerAnimation: tween, start: "left right", end: "right left", scrub: true } }
+          );
+        }), trackEl);
+        requestScrollRefresh();
+      }, "top 200%");
+      return () => { stopPreparing(); parallax?.revert(); };
     });
     return () => mm.revert();
   }, [projects]);

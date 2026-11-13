@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useMemo, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { SCROLL_MOTION } from "@/lib/motionSettings";
-import { gsap, ScrollTrigger } from "@/lib/gsap";
+import { gsap, ScrollTrigger, requestScrollRefresh } from "@/lib/gsap";
 import { isReducedMotion, onReady, scrollToTarget, useIsoLayoutEffect } from "@/lib/engine";
 import { SITE } from "@/lib/site";
 import type { CatalogueItem } from "@/data/siteData";
@@ -185,10 +185,16 @@ export function FlipBook({
       let st: ScrollTrigger | null = null;
       let offReady = () => {};
       let refreshFrame = 0;
+      const previousLeaves = Array<number>(n).fill(NaN);
+      let previousBookX = NaN;
 
       const render = (p: number) => {
         leafEls.forEach((leaf, i) => {
           const lp = gsap.utils.clamp(0, 1, p * n - i);
+          // Most leaves stay still while one page turns. Refreshing the scroll
+          // rig must not rewrite their identical transforms and shadows.
+          if (previousLeaves[i] === lp) return;
+          previousLeaves[i] = lp;
           const eased = lp < 0.5 ? 2 * lp * lp : 1 - Math.pow(-2 * lp + 2, 2) / 2;
           gsap.set(leaf, { rotationY: -180 * eased, z: (lp < 0.5 ? n - i : i) * 0.8 });
           const o = String(Math.sin(eased * Math.PI) * 0.5);
@@ -197,10 +203,15 @@ export function FlipBook({
         const open = Math.min(1, p * n);
         const close = Math.max(0, p * n - (n - 1));
         // Keep the dedicated viewer's full two-page frame centered, including its backing.
-        gsap.set(bookEl, { xPercent: variant === "pinned" ? 0 : -25 * (1 - open) + 25 * close });
+        const bookX = variant === "pinned" ? 0 : -25 * (1 - open) + 25 * close;
+        if (previousBookX !== bookX) {
+          previousBookX = bookX;
+          gsap.set(bookEl, { xPercent: bookX });
+        }
         if (label.current) {
           const k = Math.round(p * n);
-          label.current.textContent = k === 0 ? "Front cover" : k === n ? "Back cover" : `Pages ${k * 2}–${k * 2 + 1} of ${n * 2}`;
+          const value = k === 0 ? "Front cover" : k === n ? "Back cover" : `Pages ${k * 2}–${k * 2 + 1} of ${n * 2}`;
+          if (label.current.textContent !== value) label.current.textContent = value;
         }
       };
 
@@ -242,7 +253,7 @@ export function FlipBook({
               },
             });
             st = tween.scrollTrigger ?? null;
-            refreshFrame = window.requestAnimationFrame(() => ScrollTrigger.refresh());
+            refreshFrame = window.requestAnimationFrame(() => requestScrollRefresh());
             return () => {
               window.cancelAnimationFrame(refreshFrame);
               tween.scrollTrigger?.kill();

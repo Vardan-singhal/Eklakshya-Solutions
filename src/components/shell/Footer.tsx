@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { gsap, ScrollTrigger } from "@/lib/gsap";
 import { useIsoLayoutEffect } from "@/lib/engine";
 import { NAV, SITE, whatsappLink } from "@/lib/site";
 import { Button } from "@/components/ui/interactive";
 import { BrandWordmark, StaticTarget, TargetLogo } from "@/components/ui/brand";
+import { useInView } from "@/components/three/useGraphics";
 
 const HEADLINE = ["Let's", "hit", "the", "target."];
 
@@ -17,18 +18,20 @@ type FooterLink = { label: string; href: string };
  * 12-column grid as the rest of the site: brand 4 · services 3 · studio 2 · contact 3.
  */
 export function Footer({ services }: { services: FooterLink[] }) {
-  const ref = useRef<HTMLElement>(null);
+  const [ref, nearFooter] = useInView<HTMLElement>("600px");
   const [time, setTime] = useState("");
 
   useEffect(() => {
-    const fmt = () => new Intl.DateTimeFormat("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" }).format(new Date());
+    if (!nearFooter) return;
+    const formatter = new Intl.DateTimeFormat("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" });
+    const fmt = () => formatter.format(new Date());
     const t0 = window.setTimeout(() => setTime(fmt()), 0);
     const id = window.setInterval(() => setTime(fmt()), 30_000);
     return () => {
       window.clearTimeout(t0);
       window.clearInterval(id);
     };
-  }, []);
+  }, [nearFooter]);
 
   useIsoLayoutEffect(() => {
     const el = ref.current;
@@ -139,7 +142,7 @@ function FooterCol({ title, items, className = "" }: { title: string; items: Foo
       <ul className="space-y-2.5">
         {items.map((i) => (
           <li key={i.href}>
-            <Link href={i.href} className="link-underline t-small transition-colors hover:text-fg">
+            <Link href={i.href} prefetch={false} className="link-underline t-small transition-colors hover:text-fg">
               {i.label}
             </Link>
           </li>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useRef, type ElementType } from "react";
+import { Fragment, useRef, type CSSProperties, type ElementType } from "react";
 import { SCROLL_MOTION } from "@/lib/motionSettings";
 import { gsap } from "@/lib/gsap";
 import { isReducedMotion, observeReadyEntrance, onReady, useIsoLayoutEffect } from "@/lib/engine";
@@ -66,6 +66,7 @@ export function SplitText({
   useIsoLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
+    if (mode === "load" && document.documentElement.hasAttribute("data-initial-entrance")) return;
     const targets = el.querySelectorAll("[data-split]");
     let off = () => {};
 
@@ -97,8 +98,10 @@ export function SplitText({
     };
   }, []);
 
+  let entranceIndex = 0;
+  const entranceStyle = () => mode === "load" ? { "--split-delay": `${delay + entranceIndex++ * (stagger ?? (by === "chars" ? 0.03 : 0.07))}s` } as CSSProperties : undefined;
   return (
-    <Tag ref={ref} id={id} className={cn(className)}>
+    <Tag ref={ref} id={id} className={cn(className, mode === "load" && "initial-split")}>
       {lines.map((words, li) => (
         <Fragment key={li}>
           {words.map((w, wi) => (
@@ -106,12 +109,12 @@ export function SplitText({
               <span className="mr-[0.13em] inline-block overflow-hidden align-bottom" style={{ paddingBottom: "0.16em", marginBottom: "-0.16em" }}>
                 {by === "chars" ? (
                   w.w.split("").map((c, ci) => (
-                    <span key={ci} data-split className={cn("inline-block", w.hl && "text-gradient")}>
+                    <span key={ci} data-split style={entranceStyle()} className={cn("inline-block", w.hl && "text-gradient")}>
                       {c}
                     </span>
                   ))
                 ) : (
-                  <span data-split className={cn("inline-block", w.hl && "text-gradient")}>
+                  <span data-split style={entranceStyle()} className={cn("inline-block", w.hl && "text-gradient")}>
                     {w.w}
                   </span>
                 )}

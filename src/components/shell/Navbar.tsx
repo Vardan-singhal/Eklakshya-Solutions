@@ -68,7 +68,7 @@ export function Navbar() {
         } ${scrolled ? "border-b border-line bg-bg/65 py-3 backdrop-blur-xl" : "py-5"}`}
       >
         <div className="container-x flex items-center justify-between gap-3 sm:gap-6">
-          <Link href="/" className="group flex items-center gap-2.5 sm:gap-3" aria-label="Eklakshya Solutions — home" data-cursor="Home">
+          <Link prefetch={false} href="/" className="group flex items-center gap-2.5 sm:gap-3" aria-label="Eklakshya Solutions — home" data-cursor="Home">
             <TargetLogo size={34} className="text-fg transition-transform duration-700 group-hover:rotate-180 sm:h-[38px] sm:w-[38px]" />
             <span className="leading-none" role="img" aria-label="Eklakshya Solutions">
               <BrandWordmark size={28} className="w-[120px] sm:w-[140px]" />
@@ -79,7 +79,7 @@ export function Navbar() {
             {NAV.map((l) => {
               const active = isActive(pathname, l.href);
               return (
-                <Link
+                <Link prefetch={false}
                   key={l.href}
                   href={l.href}
                   data-cursor={l.label}
@@ -142,7 +142,7 @@ export function Navbar() {
                     exit={{ y: "110%" }}
                     transition={{ duration: 0.7, delay: 0.15 + i * 0.05, ease: [0.16, 1, 0.3, 1] }}
                   >
-                    <Link
+                    <Link prefetch={false}
                       href={l.href}
                       data-cursor={l.label}
                       onClick={() => setOpen(false)}
